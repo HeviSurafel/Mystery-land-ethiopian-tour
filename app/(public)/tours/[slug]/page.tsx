@@ -178,9 +178,9 @@ export default function TourDetailPage() {
 
         if (!tourData.images || tourData.images.length === 0) {
           tourData.images = [
-            `https://picsum.photos/seed/${tourData.slug || 'tour'}/800/600`,
-            `https://picsum.photos/seed/${tourData.slug || 'tour'}-2/800/600`,
-            `https://picsum.photos/seed/${tourData.slug || 'tour'}-3/800/600`,
+            `/${tourData.slug || 'tour'}/800/600`,
+            `/${tourData.slug || 'tour'}-2/800/600`,
+            `/${tourData.slug || 'tour'}-3/800/600`,
           ];
         } else {
           tourData.images = tourData.images
@@ -189,9 +189,9 @@ export default function TourDetailPage() {
           
           if (tourData.images.length === 0) {
             tourData.images = [
-              `https://picsum.photos/seed/${tourData.slug || 'tour'}/800/600`,
-              `https://picsum.photos/seed/${tourData.slug || 'tour'}-2/800/600`,
-              `https://picsum.photos/seed/${tourData.slug || 'tour'}-3/800/600`,
+              `/${tourData.slug || 'tour'}/800/600`,
+              `/${tourData.slug || 'tour'}-2/800/600`,
+              `/${tourData.slug || 'tour'}-3/800/600`,
             ];
           }
         }
@@ -241,7 +241,7 @@ export default function TourDetailPage() {
 
   const getImageUrl = (imagePath: string, index: number = 0) => {
     if (!imagePath || imagePath.trim() === '') {
-      return `https://picsum.photos/seed/${tour?.slug || 'tour'}/${index + 1}/800/600`;
+      return `/${tour?.slug || 'tour'}/${index + 1}/800/600`;
     }
     if (imagePath.startsWith('/')) {
       return imagePath;
@@ -255,25 +255,25 @@ export default function TourDetailPage() {
 
   const getCurrentImage = () => {
     if (!tour?.images || tour.images.length === 0) {
-      return `https://picsum.photos/seed/${tour?.slug || 'tour'}/800/600`;
+      return `/${tour?.slug || 'tour'}/800/600`;
     }
     
     const imagePath = tour.images[currentSlide];
     if (!imagePath || imagePath.trim() === '' || imageErrors.has(currentSlide)) {
-      return `https://picsum.photos/seed/${tour?.slug || 'tour'}-${currentSlide}/800/600`;
+      return `/${tour?.slug || 'tour'}-${currentSlide}/800/600`;
     }
     
     return getImageUrl(imagePath, currentSlide);
   };
 
-  const handleBookNow = () => {
-    if (!user) {
-      sessionStorage.setItem('redirectAfterLogin', window.location.pathname + window.location.search);
-      router.push('/login');
-      return;
-    }
-    router.push(`/booking?tour=${tour?.slug}`);
-  };
+const handleBookNow = () => {
+  if (!user) {
+    sessionStorage.setItem('redirectAfterLogin', window.location.pathname + window.location.search);
+    router.push('/login');
+    return;
+  }
+  router.push(`/book?item=${tour?.slug}&type=tour`);
+};
 
   if (!isMounted || loading) {
     return (

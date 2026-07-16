@@ -154,9 +154,9 @@ export default function ExperienceDetailPage() {
 
         if (!expData.images || expData.images.length === 0) {
           expData.images = [
-            `https://picsum.photos/seed/${expData.slug || 'experience'}/800/600`,
-            `https://picsum.photos/seed/${expData.slug || 'experience'}-2/800/600`,
-            `https://picsum.photos/seed/${expData.slug || 'experience'}-3/800/600`,
+            `/${expData.slug || 'experience'}/800/600`,
+            `/${expData.slug || 'experience'}-2/800/600`,
+            `/${expData.slug || 'experience'}-3/800/600`,
           ];
         } else {
           expData.images = expData.images
@@ -165,9 +165,9 @@ export default function ExperienceDetailPage() {
           
           if (expData.images.length === 0) {
             expData.images = [
-              `https://picsum.photos/seed/${expData.slug || 'experience'}/800/600`,
-              `https://picsum.photos/seed/${expData.slug || 'experience'}-2/800/600`,
-              `https://picsum.photos/seed/${expData.slug || 'experience'}-3/800/600`,
+              `/${expData.slug || 'experience'}/800/600`,
+              `/${expData.slug || 'experience'}-2/800/600`,
+              `/${expData.slug || 'experience'}-3/800/600`,
             ];
           }
         }
@@ -208,12 +208,12 @@ export default function ExperienceDetailPage() {
 
   const getCurrentImage = () => {
     if (!experience?.images || experience.images.length === 0) {
-      return `https://picsum.photos/seed/${experience?.slug || 'experience'}/800/600`;
+      return `/${experience?.slug || 'experience'}/800/600`;
     }
     
     const imagePath = experience.images[currentSlide];
     if (!imagePath || imagePath.trim() === '' || imageErrors.has(currentSlide)) {
-      return `https://picsum.photos/seed/${experience?.slug || 'experience'}-${currentSlide}/800/600`;
+      return `/${experience?.slug || 'experience'}-${currentSlide}/800/600`;
     }
     
     return imagePath;
@@ -233,17 +233,14 @@ export default function ExperienceDetailPage() {
     setFormData(prev => ({ ...prev, [name]: value }));
   };
 
-  const handleBookNow = () => {
-    if (!user) {
-      sessionStorage.setItem('redirectAfterLogin', window.location.pathname + window.location.search);
-      router.push('/login');
-      return;
-    }
-    setIsBookingModalOpen(true);
-    setBookingStep(1);
-    setBookingError('');
-    setBookingSuccess(false);
-  };
+const handleBookNow = () => {
+  if (!user) {
+    sessionStorage.setItem('redirectAfterLogin', window.location.pathname + window.location.search);
+    router.push('/login');
+    return;
+  }
+  router.push(`/book?item=${experience?.slug}&type=experience`);
+};
 
   const closeBookingModal = () => {
     setIsBookingModalOpen(false);

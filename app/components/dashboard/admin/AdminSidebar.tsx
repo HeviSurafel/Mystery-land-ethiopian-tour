@@ -89,7 +89,7 @@ export const AdminSidebar = ({
       href: "/dashboard/admin/users", 
       icon: Users,
       color: "text-blue-500" as const,
-      badge: "12 new",
+      badge: "",
       permissions: ['admin', 'owner'] as UserRole[]
     },
     {
@@ -156,12 +156,7 @@ export const AdminSidebar = ({
       href: "/dashboard/admin/reviews",
       color: "text-sky-500" as const
     },
-    {
-      name:'FeedBack',
-      icon: MessageCircle,
-      href: "/dashboard/admin/feedback",
-      color: "text-sky-500" as const
-    },
+  
     {
       name:'Inquiries',
       icon: MessageCircle,
@@ -351,7 +346,7 @@ export const AdminSidebar = ({
                   <div className="flex items-center space-x-2">
                     <div className="relative w-8 h-8">
                       <Image 
-                        src="/Images/LogoMain.jpg" 
+                        src="/Images/mainlogo.jpg" 
                         alt="MYSTERY LAND ETHIOPIA TOURS" 
                         fill
                         className="object-contain rounded-full"
@@ -414,7 +409,7 @@ export const AdminSidebar = ({
               <div className="flex items-center space-x-2">
                 <div className="relative w-8 h-8 flex-shrink-0">
                   <Image 
-                    src="/Images/LogoMain.jpg" 
+                    src="/Images/mainlogo.png" 
                     alt="MYSTERY LAND ETHIOPIA TOURS" 
                     fill
                     className="object-contain"

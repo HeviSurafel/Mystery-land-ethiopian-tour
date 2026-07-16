@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { Plus, Download, Grid3X3, List } from "lucide-react";
 import Swal from "sweetalert2";
 import { useAuth } from "@/contexts/AuthContext";
-import { Destination } from "@/types/types";
+
 import { DestinationStats } from "@/components/dashboard/admin/destination/DestinationStats";
 import { BulkActions } from "@/components/dashboard/admin/common/BulkActions";
 import { DestinationFilters } from "@/components/dashboard/admin/destination/DestinationFilters";
@@ -15,12 +15,13 @@ import { DestinationsTable } from "@/components/dashboard/admin/destination/Dest
 import { CreateDestinationModal } from "@/components/dashboard/admin/destination/CreateDestinationModal";
 import { EditDestinationModal } from "@/components/dashboard/admin/destination/EditDestinationModal";
 import { DeleteDestinationModal } from "@/components/dashboard/admin/destination/DeleteDestinationModal";
+import { Destination } from "@/Types";
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || '';
 
 export default function AdminDestinationsPage() {
   const router = useRouter();
-  const { hasRole } = useAuth();
+  const { user } = useAuth();
   
   const [destinations, setDestinations] = useState<Destination[]>([]);
   const [loading, setLoading] = useState(true);
@@ -53,7 +54,7 @@ export default function AdminDestinationsPage() {
 
   useEffect(() => {
     // Check permissions
-    if (!hasRole(['admin', 'owner'])) {
+    if (user?.role.toLowerCase() !== 'admin') {
       router.push('/');
       return;
     }
@@ -347,7 +348,7 @@ export default function AdminDestinationsPage() {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
-  if (!hasRole(['admin', 'owner'])) {
+  if (user?.role.toLowerCase() !== 'admin') {
     return null;
   }
   console.log(`Destinations: ${JSON.stringify(destinations)}`);

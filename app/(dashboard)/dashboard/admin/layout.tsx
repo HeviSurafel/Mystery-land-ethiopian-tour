@@ -1,16 +1,16 @@
-// app/dashboard/client/layout.tsx
 "use client";
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
+import { motion, AnimatePresence } from "framer-motion";
 import { useAuth } from "@/contexts/AuthContext";
-
 import LoadingSpinner from "@/components/dashboard/LoadingSpinner";
-import { ClientSidebar } from "@/components/dashboard/ClientSidebar";
-import { ClientTopNavbar } from "@/components/dashboard/ClientTopNavbar";
+import { AdminSidebar } from "@/components/dashboard/admin/AdminSidebar";
+import { AdminTopNavbar } from "@/components/dashboard/admin/AdminTopNavbar";
 
 
-export default function ClientDashboardLayout({
+
+export default function AdminDashboardLayout({
   children,
 }: {
   children: React.ReactNode;
@@ -29,12 +29,8 @@ export default function ClientDashboardLayout({
     if (!isLoading && mounted) {
       if (!user) {
         router.push('/login');
-      } else if (user.role?.toLowerCase() === 'admin') {
-        // Redirect admin to admin dashboard
-        router.push('/dashboard/admin');
-      } else if (user.role?.toLowerCase() !== 'client') {
-        // Redirect other roles to home
-        router.push('/dashboard/client');
+      } else if (user.role.toLowerCase() !=="admin") {
+        router.push('/');
       }
     }
   }, [user, isLoading, mounted, router]);
@@ -43,15 +39,14 @@ export default function ClientDashboardLayout({
     return <LoadingSpinner />;
   }
 
-  // Only render client layout if user is client
-  if (!user || user.role?.toLowerCase() !== 'client') {
+  if (!user || user.role.toLowerCase() !=="admin") {
     return null;
   }
 
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Sidebar */}
-      <ClientSidebar 
+      <AdminSidebar 
         isCollapsed={isCollapsed}
         setIsCollapsed={setIsCollapsed}
         isMobileOpen={isMobileOpen}
@@ -64,7 +59,7 @@ export default function ClientDashboardLayout({
           isCollapsed ? 'lg:ml-20' : 'lg:ml-64'
         }`}
       >
-        <ClientTopNavbar 
+        <AdminTopNavbar 
           setIsMobileOpen={setIsMobileOpen}
           isCollapsed={isCollapsed}
         />

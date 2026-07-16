@@ -165,7 +165,7 @@ export default function DestinationsSection() {
           // Get the first image or use a fallback
           const imageUrl = dest.images && dest.images.length > 0 
             ? dest.images[0] 
-            : `https://picsum.photos/seed/${dest.slug}/800/600`;
+            : `/${dest.slug}/800/600`;
           
           // Get region from coordinates or fallback
           const region = dest.coordinates?.region || dest.region || 'Ethiopia';

@@ -143,7 +143,7 @@ export const ClientSidebar = ({
                   <div className="flex items-center space-x-2">
                     <div className="relative w-8 h-8">
                       <Image 
-                        src="/Images/logomain.png" 
+                        src="/Images/mainlogo.png" 
                         alt="MYSTERY LAND ETHIOPIA TOURS" 
                         fill
                         className="object-contain rounded-full"

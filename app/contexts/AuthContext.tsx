@@ -32,16 +32,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [isLoading, setIsLoading] = useState(true);
   const router = useRouter();
 
- useEffect(() => {
+ // contexts/AuthContext.tsx
+useEffect(() => {
   const fetchUser = async () => {
     try {
+      console.log('Fetching user...');
       const response = await fetch('/api/auth/me');
+      console.log('Response status:', response.status);
+      
       if (response.ok) {
         const data = await response.json();
-        // Transform the user data to match the frontend interface
+        console.log('User data received:', data);
+        
         if (data.user) {
           setUser({
-            id: data.user._id || data.user.id, // Handle both _id and id
+            id: data.user._id || data.user.id,
             name: data.user.name,
             email: data.user.email,
             isVerified: data.user.isVerified,
@@ -49,12 +54,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             phone: data.user.phone,
           });
         } else {
+          console.log('No user data in response');
           setUser(null);
         }
       } else {
+        console.log('Response not OK:', response.status);
         setUser(null);
       }
     } catch (error) {
+      console.error('Error fetching user:', error);
       setUser(null);
     } finally {
       setIsLoading(false);

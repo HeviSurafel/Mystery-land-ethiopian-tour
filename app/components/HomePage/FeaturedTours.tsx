@@ -74,7 +74,7 @@ export default function FeaturedTours() {
     if (tour.images && tour.images.length > 0) {
       return tour.images[0];
     }
-    return `https://picsum.photos/seed/${tour.slug}/800/600`;
+    return `/${tour.slug}/800/600`;
   };
 
   if (loading) {

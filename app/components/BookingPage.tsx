@@ -23,13 +23,15 @@ import {
   FiAlertCircle,
   FiLoader,
   FiLock,
+  FiGlobe,
+  FiAward,
 } from 'react-icons/fi';
 import { MdVerified } from 'react-icons/md';
 import Link from 'next/link';
 import Image from 'next/image';
 import { useAuth } from '@/contexts/AuthContext';
 
-interface Tour {
+interface BaseItem {
   id: string;
   _id: string;
   name: string;
@@ -37,6 +39,16 @@ interface Tour {
   description: string;
   duration: string;
   images: string[];
+  price: number;
+  rating: number;
+  reviewCount: number;
+  category: string;
+  tag: string;
+  isUnesco?: boolean;
+  unesco?: boolean;
+}
+
+interface Tour extends BaseItem {
   coordinates: {
     lat: number;
     lng: number;
@@ -45,16 +57,36 @@ interface Tour {
   };
   groupSize: string;
   difficulty: string;
-  rating: number;
-  reviewCount: number;
-  featured: boolean;
-  tag: string;
   highlights: string[];
-  category: string;
   bestTime: string[];
-  price: number;
   location?: string;
+  departureDates: string[];
 }
+
+interface Experience extends BaseItem {
+  location: string;
+  coordinates?: {
+    lat: number;
+    lng: number;
+    city: string;
+    region: string;
+  };
+  groupSize: string;
+  difficulty: string;
+  highlights: string[];
+  included: string[];
+  notIncluded: string[];
+  bestTimeToVisit: string;
+  languages: string[];
+  ageRange: string;
+  whatToBring: string[];
+  meetingPoint: string;
+  startTimes: string[];
+  culturalSignificance: string;
+  seasonalAvailability: string;
+}
+
+type ItemType = 'tour' | 'experience';
 
 const fadeInUp = {
   initial: { opacity: 0, y: 30 },
@@ -74,11 +106,12 @@ export default function BookingPage() {
   const { user, isLoading: authLoading } = useAuth();
   const router = useRouter();
   const searchParams = useSearchParams();
-  const tourSlug = searchParams.get('tour');
+  const itemSlug = searchParams.get('item');
+  const itemType = (searchParams.get('type') as ItemType) || 'tour';
   
   const [currentStep, setCurrentStep] = useState(1);
-  const [selectedTour, setSelectedTour] = useState<Tour | null>(null);
-  const [tours, setTours] = useState<Tour[]>([]);
+  const [selectedItem, setSelectedItem] = useState<Tour | Experience | null>(null);
+  const [items, setItems] = useState<(Tour | Experience)[]>([]);
   const [travelers, setTravelers] = useState(2);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
@@ -108,36 +141,36 @@ export default function BookingPage() {
         ...prev,
         fullName: user.name || '',
         email: user.email || '',
-      
       }));
     }
-    fetchTours();
-  }, [user]);
+    fetchItems();
+  }, [user, itemType]);
 
-  const fetchTours = async () => {
+  const fetchItems = async () => {
     try {
       setLoading(true);
-      const response = await fetch('/api/tours?limit=10&featured=true');
+      const endpoint = itemType === 'tour' ? '/api/tours?limit=10&featured=true' : '/api/experiences?limit=10&featured=true';
+      const response = await fetch(endpoint);
       const data = await response.json();
 
       if (response.ok && data.success) {
-        const toursWithPrices = data.data.map((tour: any) => ({
-          ...tour,
-          price: tour.price || Math.floor(Math.random() * 5000) + 2000,
+        const itemsWithPrices = data.data.map((item: any) => ({
+          ...item,
+          price: item.price || Math.floor(Math.random() * 5000) + 2000,
         }));
-        setTours(toursWithPrices);
+        setItems(itemsWithPrices);
         
-        if (tourSlug) {
-          const tour = toursWithPrices.find((t: Tour) => t.slug === tourSlug);
-          if (tour) {
-            setSelectedTour(tour);
+        if (itemSlug) {
+          const item = itemsWithPrices.find((t: any) => t.slug === itemSlug);
+          if (item) {
+            setSelectedItem(item);
           }
-        } else if (toursWithPrices.length > 0) {
-          setSelectedTour(toursWithPrices[0]);
+        } else if (itemsWithPrices.length > 0) {
+          setSelectedItem(itemsWithPrices[0]);
         }
       }
     } catch (err) {
-      console.error('Error fetching tours:', err);
+      console.error(`Error fetching ${itemType}s:`, err);
     } finally {
       setLoading(false);
     }
@@ -153,8 +186,8 @@ export default function BookingPage() {
     setSubmitting(true);
     setError('');
 
-    if (!selectedTour) {
-      setError('Please select a tour');
+    if (!selectedItem) {
+      setError(`Please select a ${itemType}`);
       setSubmitting(false);
       return;
     }
@@ -169,15 +202,16 @@ export default function BookingPage() {
       const bookingData = {
         fullName: formData.fullName || user.name,
         email: formData.email || user.email,
-        phone: formData.phone ||'',
+        phone: formData.phone || '',
         country: formData.country,
         preferredDate: formData.preferredDate,
         travelers: travelers,
         specialRequests: formData.specialRequests,
-        itemId: selectedTour._id || selectedTour.id,
-        itemName: selectedTour.name,
-        itemType: 'tour',
+        itemId: selectedItem._id || selectedItem.id,
+        itemName: selectedItem.name,
+        itemType: itemType,
         userId: user.id,
+        price: selectedItem.price,
       };
 
       const response = await fetch('/api/bookings', {
@@ -204,9 +238,40 @@ export default function BookingPage() {
     }
   };
 
-  const totalPrice = selectedTour ? (selectedTour.price || 0) * travelers : 0;
+  const totalPrice = selectedItem ? (selectedItem.price || 0) * travelers : 0;
+  const steps = [`${itemType === 'tour' ? 'Tour' : 'Experience'} & Dates`, 'Traveler Info', 'Review'];
+  const isTour = itemType === 'tour';
+  const itemLabel = isTour ? 'Tour' : 'Experience';
+  const itemLabelPlural = isTour ? 'Tours' : 'Experiences';
 
-  const steps = ['Tour & Dates', 'Traveler Info', 'Review'];
+  // Get location display
+  const getLocation = (item: Tour | Experience | null) => {
+    if (!item) return 'Ethiopia';
+    if (isTour) {
+      const tour = item as Tour;
+      return tour.coordinates?.city || tour.location || 'Ethiopia';
+    }
+    const exp = item as Experience;
+    return exp.location || exp.coordinates?.city || 'Ethiopia';
+  };
+
+  // Get duration display
+  const getDuration = (item: Tour | Experience | null) => {
+    if (!item) return '';
+    return item.duration || '';
+  };
+
+  // Get group size
+  const getGroupSize = (item: Tour | Experience | null) => {
+    if (!item) return '';
+    return item.groupSize || 'Private Guide Included';
+  };
+
+  // Get UNESCO status
+  const getUnesco = (item: Tour | Experience | null) => {
+    if (!item) return false;
+    return item.isUnesco || (item as any).unesco || false;
+  };
 
   if (authLoading) {
     return (
@@ -234,7 +299,7 @@ export default function BookingPage() {
             Please Login to Book
           </h2>
           <p className="text-[#404942] text-lg mb-6">
-            You need to be logged in to book a tour. Please login or create an account to continue.
+            You need to be logged in to book a {itemLabel.toLowerCase()}. Please login or create an account to continue.
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <Link href="/login">
@@ -258,7 +323,7 @@ export default function BookingPage() {
       <div className="pt-32 pb-20 px-4 md:px-6 max-w-7xl mx-auto">
         <div className="flex flex-col items-center justify-center py-20">
           <FiLoader className="w-12 h-12 text-[#004525] animate-spin" />
-          <p className="mt-4 text-[#404942]">Loading tours...</p>
+          <p className="mt-4 text-[#404942]">Loading {itemLabelPlural.toLowerCase()}...</p>
         </div>
       </div>
     );
@@ -279,7 +344,7 @@ export default function BookingPage() {
             Booking Confirmed!
           </h2>
           <p className="text-[#404942] text-lg mb-2">
-            Your adventure is booked. We've sent a confirmation to your email.
+            Your {itemLabel.toLowerCase()} is booked. We've sent a confirmation to your email.
           </p>
           <div className="bg-[#f8f9ff] p-4 rounded-xl inline-block mb-6">
             <p className="text-sm text-[#707971]">Booking Reference</p>
@@ -293,9 +358,9 @@ export default function BookingPage() {
                 Return Home
               </button>
             </Link>
-            <Link href="/tours">
+            <Link href={isTour ? '/tours' : '/experiences'}>
               <button className="px-8 py-3 border border-[#004525] text-[#004525] rounded-xl font-semibold hover:bg-[#004525]/5 transition-colors">
-                Explore More Tours
+                Explore More {itemLabelPlural}
               </button>
             </Link>
           </div>
@@ -304,14 +369,14 @@ export default function BookingPage() {
     );
   }
 
-  if (!selectedTour) {
+  if (!selectedItem) {
     return (
       <div className="pt-32 pb-20 px-4 md:px-6 max-w-7xl mx-auto">
         <div className="text-center py-20">
-          <p className="text-[#404942]">No tours available for booking.</p>
-          <Link href="/tours">
+          <p className="text-[#404942]">No {itemLabelPlural.toLowerCase()} available for booking.</p>
+          <Link href={isTour ? '/tours' : '/experiences'}>
             <button className="mt-4 px-6 py-2 bg-[#004525] text-white rounded-lg hover:bg-[#1f5d3a] transition-colors">
-              Browse Tours
+              Browse {itemLabelPlural}
             </button>
           </Link>
         </div>
@@ -370,7 +435,7 @@ export default function BookingPage() {
         {/* Left Column: Forms */}
         <div className="lg:col-span-8 space-y-8">
           <form onSubmit={handleSubmit}>
-            {/* Section 1: Tour Selection */}
+            {/* Section 1: Item Selection */}
             {currentStep === 1 && (
               <motion.section
                 initial="initial"
@@ -388,7 +453,7 @@ export default function BookingPage() {
                   variants={fadeInUp}
                   className="text-lg text-[#404942] max-w-2xl"
                 >
-                  Select your preferred tour and travel dates.
+                  Select your preferred {itemLabel.toLowerCase()} and travel dates.
                 </motion.p>
 
                 <motion.div
@@ -397,20 +462,20 @@ export default function BookingPage() {
                 >
                   <div className="space-y-1">
                     <label className="text-sm font-semibold text-[#004525]">
-                      Select Tour
+                      Select {itemLabel}
                     </label>
                     <div className="relative">
                       <select
-                        value={selectedTour?._id || selectedTour?.id || ''}
+                        value={selectedItem?._id || selectedItem?.id || ''}
                         onChange={(e) => {
-                          const tour = tours.find(t => t._id === e.target.value || t.id === e.target.value);
-                          if (tour) setSelectedTour(tour);
+                          const item = items.find(t => t._id === e.target.value || t.id === e.target.value);
+                          if (item) setSelectedItem(item);
                         }}
                         className="w-full h-14 pl-4 pr-10 appearance-none bg-white border border-[#c0c9bf] rounded-xl focus:border-[#004525] transition-colors"
                       >
-                        {tours.map((tour) => (
-                          <option key={tour._id || tour.id} value={tour._id || tour.id}>
-                            {tour.name}
+                        {items.map((item) => (
+                          <option key={item._id || item.id} value={item._id || item.id}>
+                            {item.name}
                           </option>
                         ))}
                       </select>
@@ -437,14 +502,14 @@ export default function BookingPage() {
 
                 <motion.div variants={fadeInUp} className="pt-4">
                   <h3 className="font-['Playfair_Display'] text-2xl font-semibold mb-4">
-                    Selected Tour Preview
+                    Selected {itemLabel} Preview
                   </h3>
                   <div className="glass-card rounded-2xl overflow-hidden group">
                     <div className="relative h-64">
-                      {selectedTour.images && selectedTour.images.length > 0 ? (
+                      {selectedItem.images && selectedItem.images.length > 0 ? (
                         <Image
-                          src={selectedTour.images[0]}
-                          alt={selectedTour.name}
+                          src={selectedItem.images[0]}
+                          alt={selectedItem.name}
                           fill
                           className="object-cover transition-transform duration-700 group-hover:scale-105"
                           onError={(e) => {
@@ -454,20 +519,31 @@ export default function BookingPage() {
                         />
                       ) : (
                         <div className="w-full h-full bg-gradient-to-br from-[#004525] to-[#2d6a4f] flex items-center justify-center text-white text-4xl font-bold">
-                          {selectedTour.name.charAt(0)}
+                          {selectedItem.name.charAt(0)}
                         </div>
                       )}
                       <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent" />
                       <div className="absolute top-4 left-4">
                         <span className="bg-[#ffe088] text-[#241a00] px-4 py-2 rounded-full text-xs font-bold uppercase tracking-wider">
-                          {selectedTour.tag || 'Featured'}
+                          {selectedItem.tag || (isTour ? 'Tour' : 'Experience')}
                         </span>
                       </div>
-                      {selectedTour.rating > 0 && (
+                      {getUnesco(selectedItem) && (
+                        <div className="absolute top-4 left-32">
+                          <span className="bg-[#cca830] text-[#4f3e00] px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider flex items-center gap-1">
+                            <FiAward size={14} />
+                            UNESCO
+                          </span>
+                        </div>
+                      )}
+                      {selectedItem.rating > 0 && (
                         <div className="absolute top-4 right-4 flex items-center gap-1 bg-white/80 backdrop-blur-md px-3 py-1 rounded-full">
                           <FiStar size={16} className="text-[#735c00] fill-[#735c00]" />
                           <span className="text-sm font-bold text-[#004525]">
-                            {selectedTour.rating.toFixed(1)}
+                            {selectedItem.rating.toFixed(1)}
+                          </span>
+                          <span className="text-xs text-[#404942]">
+                            ({selectedItem.reviewCount})
                           </span>
                         </div>
                       )}
@@ -476,19 +552,19 @@ export default function BookingPage() {
                       <div className="flex justify-between items-start">
                         <div>
                           <h4 className="font-['Playfair_Display'] text-2xl font-semibold text-[#004525]">
-                            {selectedTour.name}
+                            {selectedItem.name}
                           </h4>
                           <p className="text-[#404942] flex items-center gap-1">
                             <FiMapPin size={16} /> 
-                            {selectedTour.coordinates?.city || selectedTour.location || 'Ethiopia'}
+                            {getLocation(selectedItem)}
                           </p>
                           <p className="text-sm text-[#404942] mt-1">
-                            {selectedTour.duration} • {selectedTour.groupSize || 'Private Guide Included'}
+                            {getDuration(selectedItem)} • {getGroupSize(selectedItem)}
                           </p>
                         </div>
                         <div className="text-right">
                           <span className="font-['Playfair_Display'] text-2xl font-bold text-[#004525]">
-                            ${selectedTour.price || 0}
+                            ${selectedItem.price || 0}
                           </span>
                           <p className="text-xs text-[#404942]">per person</p>
                         </div>
@@ -683,8 +759,8 @@ export default function BookingPage() {
             <div className="space-y-3 border-b border-[#c0c9bf] pb-4">
               <div className="flex justify-between items-start">
                 <div>
-                  <p className="text-sm font-semibold text-[#004525]">Tour</p>
-                  <p className="text-[#404942] text-sm">{selectedTour?.name}</p>
+                  <p className="text-sm font-semibold text-[#004525]">{itemLabel}</p>
+                  <p className="text-[#404942] text-sm">{selectedItem?.name}</p>
                 </div>
               </div>
               <div className="flex justify-between">
@@ -710,7 +786,7 @@ export default function BookingPage() {
             <div className="space-y-2">
               <div className="flex justify-between text-base">
                 <span>Base Rate (x{travelers})</span>
-                <span>${((selectedTour?.price || 0) * travelers).toFixed(2)}</span>
+                <span>${((selectedItem?.price || 0) * travelers).toFixed(2)}</span>
               </div>
               <div className="flex justify-between text-base">
                 <span>Service Fee</span>

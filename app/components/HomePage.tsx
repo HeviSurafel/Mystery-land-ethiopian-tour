@@ -1,6 +1,7 @@
 // components/HomePage/index.tsx
 'use client';
 
+import AboutAbselam from "./AboutAbselam";
 import BlogSection from "./BlogSection";
 import Footer from "./Footer";
 import Header from "./Header";
@@ -24,13 +25,15 @@ export default function HomePage() {
       <main className="overflow-x-hidden">
         <HeroSection />
         <SearchSection />
+        <AboutAbselam />
+        
         <StatsSection />
         <DestinationsSection />
         <WhyChooseUs />
         <FeaturedTours />
         <BlogSection />
         <ReviewsSection />
-        <NewsletterSection />
+        
       </main>
       <Footer />
     </>

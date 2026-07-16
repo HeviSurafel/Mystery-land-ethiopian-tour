@@ -107,7 +107,6 @@ export default function Header() {
 
   const getDashboardPath = () => {
     if (!user) return '/login';
-    // Only admin and client roles
     switch (user.role?.toLowerCase()) {
       case 'admin':
         return '/dashboard/admin';
@@ -130,11 +129,13 @@ export default function Header() {
 
   const getSettingsPath = () => {
     if (!user) return '/login';
-    // Settings only for admin
-    if (user.role?.toLowerCase() === 'admin') {
-      return '/dashboard/admin/settings';
+    switch (user.role?.toLowerCase()) {
+      case 'admin':
+        return '/dashboard/admin/settings';
+      case 'client':
+      default:
+        return '/dashboard/client/settings';
     }
-    return '/dashboard/client/settings';
   };
 
   const getBookingsPath = () => {
@@ -278,9 +279,7 @@ export default function Header() {
 
         <div className="flex items-center gap-2 md:gap-4">
           {/* Search Button */}
-          <button className="text-[#004525] p-2 hover:bg-[#004525]/10 rounded-full transition-all duration-300">
-            <FiSearch size={20} className="md:size-[22px]" />
-          </button>
+         
 
           {/* User Menu - Desktop */}
           <div className="hidden md:block relative">
@@ -340,16 +339,7 @@ export default function Header() {
                         </div>
                       </div>
 
-                      {/* Profile */}
-                      <Link
-                        href={getProfilePath()}
-                        className="flex items-center gap-3 px-4 py-2.5 text-sm text-[#404942] hover:bg-[#004525]/5 hover:text-[#004525] transition-colors"
-                      >
-                        <FiUserIcon size={18} />
-                        Profile
-                      </Link>
-
-                      {/* Dashboard */}
+                      {/* Dashboard - Show for both */}
                       <button
                         onClick={handleDashboardClick}
                         className="flex items-center gap-3 px-4 py-2.5 text-sm text-[#404942] hover:bg-[#004525]/5 hover:text-[#004525] transition-colors w-full text-left"
@@ -358,37 +348,47 @@ export default function Header() {
                         Dashboard
                       </button>
 
-                      {/* Bookings */}
-                      <Link
-                        href={getBookingsPath()}
-                        className="flex items-center gap-3 px-4 py-2.5 text-sm text-[#404942] hover:bg-[#004525]/5 hover:text-[#004525] transition-colors"
-                      >
-                        <FiCalendar size={18} />
-                        My Bookings
-                      </Link>
-
-                      {/* Wishlist */}
-                      <Link
-                        href="/wishlist"
-                        className="flex items-center gap-3 px-4 py-2.5 text-sm text-[#404942] hover:bg-[#004525]/5 hover:text-[#004525] transition-colors"
-                      >
-                        <FiHeart size={18} />
-                        Wishlist
-                      </Link>
-
-                      {/* Settings - Only for Admin */}
-                      {isAdmin && (
-                        <>
-                          <hr className="my-1 border-[#c0c9bf]/30" />
-                          <Link
-                            href={getSettingsPath()}
-                            className="flex items-center gap-3 px-4 py-2.5 text-sm text-[#404942] hover:bg-[#004525]/5 hover:text-[#004525] transition-colors"
-                          >
-                            <FiSettings size={18} />
-                            Settings
-                          </Link>
-                        </>
+                      {/* Profile - Show for clients only */}
+                      {!isAdmin && (
+                        <Link
+                          href={getProfilePath()}
+                          className="flex items-center gap-3 px-4 py-2.5 text-sm text-[#404942] hover:bg-[#004525]/5 hover:text-[#004525] transition-colors"
+                        >
+                          <FiUserIcon size={18} />
+                          Profile
+                        </Link>
                       )}
+
+                      {/* Bookings - Show for clients only */}
+                      {!isAdmin && (
+                        <Link
+                          href={getBookingsPath()}
+                          className="flex items-center gap-3 px-4 py-2.5 text-sm text-[#404942] hover:bg-[#004525]/5 hover:text-[#004525] transition-colors"
+                        >
+                          <FiCalendar size={18} />
+                          My Bookings
+                        </Link>
+                      )}
+
+                      {/* Wishlist - Show for clients only */}
+                      {!isAdmin && (
+                        <Link
+                          href="/wishlist"
+                          className="flex items-center gap-3 px-4 py-2.5 text-sm text-[#404942] hover:bg-[#004525]/5 hover:text-[#004525] transition-colors"
+                        >
+                          <FiHeart size={18} />
+                          Wishlist
+                        </Link>
+                      )}
+
+                      {/* Settings - Show for both */}
+                      <Link
+                        href={getSettingsPath()}
+                        className="flex items-center gap-3 px-4 py-2.5 text-sm text-[#404942] hover:bg-[#004525]/5 hover:text-[#004525] transition-colors"
+                      >
+                        <FiSettings size={18} />
+                        Settings
+                      </Link>
 
                       <hr className="my-1 border-[#c0c9bf]/30" />
                       <button
@@ -456,7 +456,7 @@ export default function Header() {
           <div className="flex items-center gap-2 pb-3 border-b border-[#c0c9bf]/20">
             <div className="relative w-8 h-8 flex-shrink-0">
               <Image
-                src="/Images/logo/logo.png"
+                src="/Images/mainlogo.png"
                 alt="Mystery Land Tours"
                 fill
                 className="object-contain"
@@ -556,13 +556,8 @@ export default function Header() {
                   )}
                 </div>
               </div>
-              <Link
-                href={getProfilePath()}
-                className="text-[#404942] hover:text-[#004525] transition-colors pl-3 py-2 text-sm font-semibold flex items-center gap-3"
-              >
-                <FiUserIcon size={18} />
-                Profile
-              </Link>
+
+              {/* Dashboard - Show for both */}
               <button
                 onClick={handleDashboardClick}
                 className="text-[#404942] hover:text-[#004525] transition-colors pl-3 py-2 text-sm font-semibold flex items-center gap-3 w-full text-left"
@@ -570,31 +565,49 @@ export default function Header() {
                 <FiLayout size={18} />
                 Dashboard
               </button>
-              <Link
-                href={getBookingsPath()}
-                className="text-[#404942] hover:text-[#004525] transition-colors pl-3 py-2 text-sm font-semibold flex items-center gap-3"
-              >
-                <FiCalendar size={18} />
-                My Bookings
-              </Link>
-              <Link
-                href="/wishlist"
-                className="text-[#404942] hover:text-[#004525] transition-colors pl-3 py-2 text-sm font-semibold flex items-center gap-3"
-              >
-                <FiHeart size={18} />
-                Wishlist
-              </Link>
-              {isAdmin && (
-                <>
-                  <Link
-                    href={getSettingsPath()}
-                    className="text-[#404942] hover:text-[#004525] transition-colors pl-3 py-2 text-sm font-semibold flex items-center gap-3"
-                  >
-                    <FiSettings size={18} />
-                    Settings
-                  </Link>
-                </>
+
+              {/* Profile - Show for clients only */}
+              {!isAdmin && (
+                <Link
+                  href={getProfilePath()}
+                  className="text-[#404942] hover:text-[#004525] transition-colors pl-3 py-2 text-sm font-semibold flex items-center gap-3"
+                >
+                  <FiUserIcon size={18} />
+                  Profile
+                </Link>
               )}
+
+              {/* Bookings - Show for clients only */}
+              {!isAdmin && (
+                <Link
+                  href={getBookingsPath()}
+                  className="text-[#404942] hover:text-[#004525] transition-colors pl-3 py-2 text-sm font-semibold flex items-center gap-3"
+                >
+                  <FiCalendar size={18} />
+                  My Bookings
+                </Link>
+              )}
+
+              {/* Wishlist - Show for clients only */}
+              {!isAdmin && (
+                <Link
+                  href="/wishlist"
+                  className="text-[#404942] hover:text-[#004525] transition-colors pl-3 py-2 text-sm font-semibold flex items-center gap-3"
+                >
+                  <FiHeart size={18} />
+                  Wishlist
+                </Link>
+              )}
+
+              {/* Settings - Show for both */}
+              <Link
+                href={getSettingsPath()}
+                className="text-[#404942] hover:text-[#004525] transition-colors pl-3 py-2 text-sm font-semibold flex items-center gap-3"
+              >
+                <FiSettings size={18} />
+                Settings
+              </Link>
+
               <button
                 onClick={handleLogout}
                 className="text-red-600 hover:text-red-700 transition-colors pl-3 py-2 text-sm font-semibold flex items-center gap-3"
