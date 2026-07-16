@@ -74,6 +74,15 @@ const destinationSchema = new mongoose.Schema({
   // Optional itinerary
   itinerary: [dayItinerarySchema],
 
+  // Pricing
+  price: {
+    type: Number,
+    required: true,
+    default: 0,
+    min: 0,
+    description: 'Average price per person in USD for visiting this destination',
+  },
+
   // Additional fields
   region: String,
   country: String,
@@ -123,7 +132,7 @@ const destinationSchema = new mongoose.Schema({
 // Update timestamps on save
 destinationSchema.pre('save', function(next) {
   this.updatedAt = new Date();
-
+  next(); // Fixed: added next()
 });
 
 // Add indexes
@@ -132,6 +141,7 @@ destinationSchema.index({ type: 1 });
 destinationSchema.index({ region: 1 });
 destinationSchema.index({ status: 1 });
 destinationSchema.index({ featured: 1 });
+destinationSchema.index({ price: 1 }); // Add index for price queries
 
 const Destination = mongoose.models.Destination || mongoose.model('Destination', destinationSchema);
 

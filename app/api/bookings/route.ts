@@ -8,7 +8,6 @@ import Festival from '@/models/Festival';
 import Experience from '@/models/Experience';
 import User from '@/models/User';
 import { getCurrentUserFromRequest } from '@/lib/auth';
-import { v4 as uuidv4 } from 'uuid';
 
 // Helper function to find item by type and ID
 async function findItemByType(type: string, id: string) {
@@ -52,6 +51,33 @@ async function findItemByType(type: string, id: string) {
   }
 
   return item;
+}
+
+// Helper function to get model by type
+function getModelByType(type: string) {
+  switch (type) {
+    case 'tour':
+      return Tour;
+    case 'destination':
+      return Destination;
+    case 'festival':
+      return Festival;
+    case 'experience':
+      return Experience;
+    default:
+      return null;
+  }
+}
+
+// Generate unique booking number
+function generateBookingNumber() {
+  const date = new Date();
+  const year = date.getFullYear().toString().slice(-2);
+  const month = (date.getMonth() + 1).toString().padStart(2, '0');
+  const day = date.getDate().toString().padStart(2, '0');
+  const dateStr = `${year}${month}${day}`;
+  const random = Math.random().toString(36).substring(2, 6).toUpperCase();
+  return `BK${dateStr}${random}`;
 }
 
 export async function POST(req: NextRequest) {
@@ -121,27 +147,7 @@ export async function POST(req: NextRequest) {
     const bookingId = `booking_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
 
     // Generate booking number
-    const date = new Date();
-    const year = date.getFullYear().toString().slice(-2);
-    const month = (date.getMonth() + 1).toString().padStart(2, '0');
-    const day = date.getDate().toString().padStart(2, '0');
-    const dateStr = `${year}${month}${day}`;
-
-    // Count bookings today to generate sequence
-    const startOfDay = new Date(date);
-    startOfDay.setHours(0, 0, 0, 0);
-    const endOfDay = new Date(date);
-    endOfDay.setHours(23, 59, 59, 999);
-
-    const todayBookingsCount = await Booking.countDocuments({
-      createdAt: {
-        $gte: startOfDay,
-        $lte: endOfDay
-      }
-    });
-
-    const sequence = (todayBookingsCount + 1).toString().padStart(4, '0');
-    const bookingNumber = `BK${dateStr}${sequence}`;
+    const bookingNumber = generateBookingNumber();
 
     // Calculate end date based on item duration
     const startDate = new Date(data.preferredDate);
@@ -151,6 +157,13 @@ export async function POST(req: NextRequest) {
     const durationMatch = item.duration?.match(/(\d+)/);
     const days = durationMatch ? parseInt(durationMatch[0]) : 1;
     endDate.setDate(endDate.getDate() + days);
+
+    // Calculate pricing - NO TAX, NO SERVICE FEE
+    const pricePerPerson = item.price || data.price || 0;
+    const travelersCount = data.travelers || 1;
+    const totalAmount = pricePerPerson * travelersCount;
+    const depositPercentage = 20; // 20% deposit
+    const depositAmount = (totalAmount * depositPercentage) / 100;
 
     // Prepare the booking data structure
     const bookingData: any = {
@@ -170,15 +183,33 @@ export async function POST(req: NextRequest) {
       festival: data.itemType === 'festival' ? item._id : null,
       experience: data.itemType === 'experience' ? item._id : null,
       
-      // Item snapshot
+      // Item snapshot with price
       itemSnapshot: {
         name: item.name,
         type: data.itemType,
         duration: item.duration,
-        location: item.location,
-        image: item.images?.[0] || item.image,
-        price: item.price,
-        discount: item.discount
+        location: item.location || item.coordinates?.city || 'Ethiopia',
+        image: item.images?.[0] || item.image || null,
+        price: pricePerPerson,
+        pricePerPerson: pricePerPerson,
+        currency: 'USD',
+        totalPrice: totalAmount,
+        deposit: depositAmount,
+        depositPercentage: depositPercentage,
+        discount: item.discount || null
+      },
+      
+      // Pricing details - NO TAX, NO SERVICE FEE
+      pricing: {
+        subtotal: totalAmount,
+        tax: 0,
+        serviceFee: 0,
+        discountAmount: 0,
+        discountType: null,
+        discountCode: null,
+        depositAmount: depositAmount,
+        totalAmount: totalAmount,
+        currency: 'USD'
       },
       
       // Booking dates
@@ -191,13 +222,13 @@ export async function POST(req: NextRequest) {
       // Travelers
       numberOfTravelers: {
         adults: data.travelers,
-        children: 0,
-        infants: 0
+        children: data.children || 0,
+        infants: data.infants || 0
       },
       
       // Payment
       paymentStatus: 'pending',
-      paymentMethod: 'bank_transfer',
+      paymentMethod: data.paymentMethod || 'bank_transfer',
       
       // Booking status
       bookingStatus: 'pending',
@@ -212,7 +243,8 @@ export async function POST(req: NextRequest) {
         name: 'To be arranged',
         checkIn: startDate,
         checkOut: endDate,
-        numberOfRooms: Math.ceil(data.travelers / 2)
+        numberOfRooms: Math.ceil(data.travelers / 2),
+        pricePerNight: 0
       }] : [],
       
       // Travelers details
@@ -239,7 +271,7 @@ export async function POST(req: NextRequest) {
       
       // Metadata
       metadata: {
-        source: 'website',
+        source: data.source || 'website',
         ipAddress: req.headers.get('x-forwarded-for') || req.headers.get('x-real-ip') || 'unknown',
         userAgent: req.headers.get('user-agent') || 'unknown'
       },
@@ -249,7 +281,7 @@ export async function POST(req: NextRequest) {
       exclusions: item.exclusions || [],
       
       // Cancellation policy
-      cancellationPolicy: 'moderate'
+      cancellationPolicy: data.cancellationPolicy || 'moderate'
     };
 
     // Create booking
@@ -286,6 +318,9 @@ export async function POST(req: NextRequest) {
         itemName: item.name,
         itemType: data.itemType,
         status: booking.bookingStatus,
+        totalAmount: totalAmount,
+        depositAmount: depositAmount,
+        pricePerPerson: pricePerPerson,
       }
     });
 
@@ -308,22 +343,6 @@ export async function POST(req: NextRequest) {
   }
 }
 
-// Helper function to get model by type
-function getModelByType(type: string) {
-  switch (type) {
-    case 'tour':
-      return Tour;
-    case 'destination':
-      return Destination;
-    case 'festival':
-      return Festival;
-    case 'experience':
-      return Experience;
-    default:
-      return null;
-  }
-}
-
 export async function GET(req: NextRequest) {
   try {
     await connectToDatabase();
@@ -332,6 +351,9 @@ export async function GET(req: NextRequest) {
     const searchParams = req.nextUrl.searchParams;
     const email = searchParams.get('email');
     const reference = searchParams.get('reference');
+    const limit = parseInt(searchParams.get('limit') || '10');
+    const page = parseInt(searchParams.get('page') || '1');
+    const status = searchParams.get('status');
 
     let query: any = {};
 
@@ -354,15 +376,26 @@ export async function GET(req: NextRequest) {
       );
     }
 
-    const bookings = await Booking.find(query)
-      .populate('itemRef')
-      .sort({ createdAt: -1 })
-      .limit(10)
-      .lean();
+    // Add status filter if provided
+    if (status) {
+      query.bookingStatus = status;
+    }
+
+    const skip = (page - 1) * limit;
+
+    const [bookings, total] = await Promise.all([
+      Booking.find(query)
+        .populate('itemRef')
+        .sort({ createdAt: -1 })
+        .skip(skip)
+        .limit(limit)
+        .lean(),
+      Booking.countDocuments(query)
+    ]);
 
     return NextResponse.json({
       success: true,
-      data: bookings.map(booking => ({
+      data: bookings.map((booking: any) => ({
         id: booking._id.toString(),
         bookingReference: booking.bookingNumber,
         itemName: booking.itemSnapshot?.name || booking.itemRef?.name,
@@ -371,14 +404,101 @@ export async function GET(req: NextRequest) {
         travelers: booking.numberOfTravelers?.adults || 0,
         status: booking.bookingStatus,
         guestName: booking.travelers[0]?.firstName + ' ' + booking.travelers[0]?.lastName,
+        guestEmail: booking.travelers[0]?.email,
+        totalAmount: booking.pricing?.totalAmount || 0,
+        depositAmount: booking.pricing?.depositAmount || 0,
+        pricePerPerson: booking.itemSnapshot?.pricePerPerson || 0,
         createdAt: booking.createdAt,
-      }))
+        updatedAt: booking.updatedAt,
+      })),
+      pagination: {
+        page,
+        limit,
+        total,
+        pages: Math.ceil(total / limit)
+      }
     });
 
   } catch (error: any) {
     console.error('Error fetching bookings:', error);
     return NextResponse.json(
       { success: false, error: error.message || 'Failed to fetch bookings' },
+      { status: 500 }
+    );
+  }
+}
+
+export async function PUT(req: NextRequest) {
+  try {
+    await connectToDatabase();
+
+    const user = await getCurrentUserFromRequest(req);
+    const data = await req.json();
+    const { bookingId, status, paymentStatus, notes } = data;
+
+    if (!bookingId) {
+      return NextResponse.json(
+        { success: false, error: 'Booking ID is required' },
+        { status: 400 }
+      );
+    }
+
+    // Find the booking
+    const booking = await Booking.findOne({ id: bookingId });
+    if (!booking) {
+      return NextResponse.json(
+        { success: false, error: 'Booking not found' },
+        { status: 404 }
+      );
+    }
+
+    // Check if user has permission to update
+    if (user && booking.user) {
+      const isOwner = booking.user.toString() === user.userId;
+      const isAdmin = user.role === 'admin' || user.role === 'owner';
+      
+      if (!isOwner && !isAdmin) {
+        return NextResponse.json(
+          { success: false, error: 'You do not have permission to update this booking' },
+          { status: 403 }
+        );
+      }
+    }
+
+    // Update fields
+    if (status) {
+      booking.bookingStatus = status;
+      // If status is cancelled, update payment status
+      if (status === 'cancelled') {
+        booking.paymentStatus = 'cancelled';
+      }
+    }
+
+    if (paymentStatus) {
+      booking.paymentStatus = paymentStatus;
+    }
+
+    if (notes) {
+      booking.notes = notes;
+    }
+
+    await booking.save();
+
+    return NextResponse.json({
+      success: true,
+      data: {
+        id: booking.id,
+        bookingReference: booking.bookingNumber,
+        status: booking.bookingStatus,
+        paymentStatus: booking.paymentStatus,
+        updatedAt: booking.updatedAt
+      }
+    });
+
+  } catch (error: any) {
+    console.error('Error updating booking:', error);
+    return NextResponse.json(
+      { success: false, error: error.message || 'Failed to update booking' },
       { status: 500 }
     );
   }

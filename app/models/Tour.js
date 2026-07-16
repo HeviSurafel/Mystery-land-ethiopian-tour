@@ -76,7 +76,7 @@ const tourSchema = new mongoose.Schema({
   highlights: [String],
   difficulty: {
     type: String,
-    enum: ['Easy', 'Moderate', 'Challenging','Moderate to Challenging','Easy to Moderate'],
+    enum: ['Easy', 'Moderate', 'Challenging', 'Moderate to Challenging', 'Easy to Moderate'],
     default: 'Moderate',
   },
   featured: {
@@ -111,6 +111,20 @@ const tourSchema = new mongoose.Schema({
   departurePoint: String,
   languages: [String],
 
+  // Pricing
+  price: {
+    type: Number,
+    required: true,
+    default: 0,
+    min: 0,
+    description: 'Price per person in USD',
+  },
+  departureDates: {
+    type: [String],
+    default: [],
+    description: 'Available departure dates for the tour',
+  },
+
   // Dashboard Fields
   category: String,
   status: {
@@ -140,7 +154,7 @@ const tourSchema = new mongoose.Schema({
 // Update timestamps on save
 tourSchema.pre('save', function(next) {
   this.updatedAt = new Date();
-  
+  next();
 });
 
 // Add indexes
@@ -149,6 +163,7 @@ tourSchema.index({ category: 1 });
 tourSchema.index({ status: 1 });
 tourSchema.index({ featured: 1 });
 tourSchema.index({ 'coordinates.region': 1 });
+tourSchema.index({ price: 1 }); // Add index for price queries
 
 const Tour = mongoose.models.Tour || mongoose.model('Tour', tourSchema);
 

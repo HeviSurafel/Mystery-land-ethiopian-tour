@@ -5,7 +5,7 @@ import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import Link from 'next/link';
 import Image from 'next/image';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import {
   FiSearch,
   FiMenu,
@@ -19,6 +19,8 @@ import {
   FiCalendar,
   FiHeart,
   FiUser as FiUserIcon,
+  FiLayout,
+  FiShield,
 } from 'react-icons/fi';
 import { useAuth } from '@/contexts/AuthContext';
 
@@ -45,6 +47,7 @@ const navLinks = [
 
 export default function Header() {
   const { user, isLoading, logout } = useAuth();
+  const router = useRouter();
   const [isScrolled, setIsScrolled] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
@@ -101,6 +104,60 @@ export default function Header() {
       .toUpperCase()
       .slice(0, 2);
   };
+
+  const getDashboardPath = () => {
+    if (!user) return '/login';
+    // Only admin and client roles
+    switch (user.role?.toLowerCase()) {
+      case 'admin':
+        return '/dashboard/admin';
+      case 'client':
+      default:
+        return '/dashboard/client';
+    }
+  };
+
+  const getProfilePath = () => {
+    if (!user) return '/login';
+    switch (user.role?.toLowerCase()) {
+      case 'admin':
+        return '/dashboard/admin/profile';
+      case 'client':
+      default:
+        return '/dashboard/client/profile';
+    }
+  };
+
+  const getSettingsPath = () => {
+    if (!user) return '/login';
+    // Settings only for admin
+    if (user.role?.toLowerCase() === 'admin') {
+      return '/dashboard/admin/settings';
+    }
+    return '/dashboard/client/settings';
+  };
+
+  const getBookingsPath = () => {
+    if (!user) return '/login';
+    switch (user.role?.toLowerCase()) {
+      case 'admin':
+        return '/dashboard/admin/bookings';
+      case 'client':
+      default:
+        return '/dashboard/client/bookings';
+    }
+  };
+
+  const handleDashboardClick = (e: React.MouseEvent) => {
+    e.preventDefault();
+    if (!user) {
+      router.push('/login');
+      return;
+    }
+    router.push(getDashboardPath());
+  };
+
+  const isAdmin = user?.role?.toLowerCase() === 'admin';
 
   // Prevent hydration mismatch by rendering a placeholder during SSR
   if (!isMounted) {
@@ -274,30 +331,43 @@ export default function Header() {
                             <p className="text-xs text-[#707971] truncate max-w-[150px]">
                               {user.email}
                             </p>
+                            {isAdmin && (
+                              <span className="inline-block mt-1 px-2 py-0.5 bg-[#004525]/10 text-[#004525] text-[10px] font-semibold rounded-full">
+                                Admin
+                              </span>
+                            )}
                           </div>
                         </div>
                       </div>
+
+                      {/* Profile */}
                       <Link
-                        href="/profile"
+                        href={getProfilePath()}
                         className="flex items-center gap-3 px-4 py-2.5 text-sm text-[#404942] hover:bg-[#004525]/5 hover:text-[#004525] transition-colors"
                       >
                         <FiUserIcon size={18} />
                         Profile
                       </Link>
-                      <Link
-                        href="/dashboard"
-                        className="flex items-center gap-3 px-4 py-2.5 text-sm text-[#404942] hover:bg-[#004525]/5 hover:text-[#004525] transition-colors"
+
+                      {/* Dashboard */}
+                      <button
+                        onClick={handleDashboardClick}
+                        className="flex items-center gap-3 px-4 py-2.5 text-sm text-[#404942] hover:bg-[#004525]/5 hover:text-[#004525] transition-colors w-full text-left"
                       >
-                        <FiSettings size={18} />
+                        <FiLayout size={18} />
                         Dashboard
-                      </Link>
+                      </button>
+
+                      {/* Bookings */}
                       <Link
-                        href="/bookings"
+                        href={getBookingsPath()}
                         className="flex items-center gap-3 px-4 py-2.5 text-sm text-[#404942] hover:bg-[#004525]/5 hover:text-[#004525] transition-colors"
                       >
                         <FiCalendar size={18} />
                         My Bookings
                       </Link>
+
+                      {/* Wishlist */}
                       <Link
                         href="/wishlist"
                         className="flex items-center gap-3 px-4 py-2.5 text-sm text-[#404942] hover:bg-[#004525]/5 hover:text-[#004525] transition-colors"
@@ -305,6 +375,21 @@ export default function Header() {
                         <FiHeart size={18} />
                         Wishlist
                       </Link>
+
+                      {/* Settings - Only for Admin */}
+                      {isAdmin && (
+                        <>
+                          <hr className="my-1 border-[#c0c9bf]/30" />
+                          <Link
+                            href={getSettingsPath()}
+                            className="flex items-center gap-3 px-4 py-2.5 text-sm text-[#404942] hover:bg-[#004525]/5 hover:text-[#004525] transition-colors"
+                          >
+                            <FiSettings size={18} />
+                            Settings
+                          </Link>
+                        </>
+                      )}
+
                       <hr className="my-1 border-[#c0c9bf]/30" />
                       <button
                         onClick={handleLogout}
@@ -464,24 +549,29 @@ export default function Header() {
                   <p className="text-xs text-[#707971] truncate max-w-[200px]">
                     {user.email}
                   </p>
+                  {isAdmin && (
+                    <span className="inline-block mt-1 px-2 py-0.5 bg-[#004525]/10 text-[#004525] text-[10px] font-semibold rounded-full">
+                      Admin
+                    </span>
+                  )}
                 </div>
               </div>
               <Link
-                href="/profile"
+                href={getProfilePath()}
                 className="text-[#404942] hover:text-[#004525] transition-colors pl-3 py-2 text-sm font-semibold flex items-center gap-3"
               >
                 <FiUserIcon size={18} />
                 Profile
               </Link>
-              <Link
-                href="/dashboard"
-                className="text-[#404942] hover:text-[#004525] transition-colors pl-3 py-2 text-sm font-semibold flex items-center gap-3"
+              <button
+                onClick={handleDashboardClick}
+                className="text-[#404942] hover:text-[#004525] transition-colors pl-3 py-2 text-sm font-semibold flex items-center gap-3 w-full text-left"
               >
-                <FiSettings size={18} />
+                <FiLayout size={18} />
                 Dashboard
-              </Link>
+              </button>
               <Link
-                href="/bookings"
+                href={getBookingsPath()}
                 className="text-[#404942] hover:text-[#004525] transition-colors pl-3 py-2 text-sm font-semibold flex items-center gap-3"
               >
                 <FiCalendar size={18} />
@@ -494,6 +584,17 @@ export default function Header() {
                 <FiHeart size={18} />
                 Wishlist
               </Link>
+              {isAdmin && (
+                <>
+                  <Link
+                    href={getSettingsPath()}
+                    className="text-[#404942] hover:text-[#004525] transition-colors pl-3 py-2 text-sm font-semibold flex items-center gap-3"
+                  >
+                    <FiSettings size={18} />
+                    Settings
+                  </Link>
+                </>
+              )}
               <button
                 onClick={handleLogout}
                 className="text-red-600 hover:text-red-700 transition-colors pl-3 py-2 text-sm font-semibold flex items-center gap-3"

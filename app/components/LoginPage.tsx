@@ -1,7 +1,7 @@
 // components/LoginPage.tsx
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
@@ -13,9 +13,11 @@ import {
   FiArrowRight,
   FiCheckCircle,
   FiAlertCircle,
+  FiLoader,
 } from 'react-icons/fi';
 import { FcGoogle } from 'react-icons/fc';
 import { FaApple } from 'react-icons/fa';
+import { useAuth } from '@/contexts/AuthContext';
 import Header from './Header';
 import Footer from './Footer';
 
@@ -35,6 +37,8 @@ const stagger = {
 
 export default function LoginPage() {
   const router = useRouter();
+  const { login, user, isLoading: authLoading } = useAuth();
+  
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -44,29 +48,53 @@ export default function LoginPage() {
   const [showToast, setShowToast] = useState(false);
   const [toastMessage, setToastMessage] = useState('');
 
+  // Redirect if already logged in
+  useEffect(() => {
+    if (user && !authLoading) {
+      redirectToDashboard(user.role);
+    }
+  }, [user, authLoading]);
+
+  const redirectToDashboard = (role: string) => {
+    // Get the redirect URL from session storage (if any)
+    const redirectAfterLogin = sessionStorage.getItem('redirectAfterLogin');
+    
+    if (redirectAfterLogin) {
+      sessionStorage.removeItem('redirectAfterLogin');
+      router.push(redirectAfterLogin);
+      return;
+    }
+
+    // Route based on role
+    switch (role?.toLowerCase()) {
+      case 'admin':
+        router.push('/dashboard/admin');
+        break;
+      case 'owner':
+        router.push('/dashboard/owner');
+        break;
+      case 'guide':
+        router.push('/dashboard/guide');
+        break;
+      case 'client':
+      default:
+        router.push('/dashboard/client');
+        break;
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
     setIsLoading(true);
 
     try {
-      const response = await fetch('/api/auth/login', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ email, password }),
-      });
+      const result = await login(email, password);
 
-      const data = await response.json();
-
-      if (!response.ok) {
-        if (response.status === 401 && data.error === 'Please verify your email first') {
-          // Redirect to verification page
-          router.push(`/verify-email?email=${encodeURIComponent(email)}`);
-          return;
-        }
-        throw new Error(data.error || 'Login failed');
+      if (!result.success) {
+        setError(result.error || 'Login failed');
+        setIsLoading(false);
+        return;
       }
 
       // Success - show toast and redirect
@@ -75,12 +103,13 @@ export default function LoginPage() {
       
       setTimeout(() => {
         setShowToast(false);
-        router.push('/dashboard');
-      }, 2000);
+        if (result.user) {
+          redirectToDashboard(result.user.role);
+        }
+      }, 1500);
 
     } catch (err: any) {
       setError(err.message || 'An error occurred during login');
-    } finally {
       setIsLoading(false);
     }
   };
@@ -138,6 +167,7 @@ export default function LoginPage() {
                     className="w-full h-12 pl-12 pr-4 bg-white border border-[#c0c9bf] rounded-xl focus:border-[#004525] transition-colors outline-none"
                     placeholder="name@example.com"
                     required
+                    disabled={isLoading}
                   />
                 </div>
               </div>
@@ -164,11 +194,13 @@ export default function LoginPage() {
                     className="w-full h-12 pl-12 pr-12 bg-white border border-[#c0c9bf] rounded-xl focus:border-[#004525] transition-colors outline-none"
                     placeholder="••••••••"
                     required
+                    disabled={isLoading}
                   />
                   <button
                     type="button"
                     onClick={() => setShowPassword(!showPassword)}
                     className="absolute right-4 top-1/2 -translate-y-1/2 text-[#707971] hover:text-[#004525] transition-colors"
+                    disabled={isLoading}
                   >
                     {showPassword ? <FiEyeOff size={20} /> : <FiEye size={20} />}
                   </button>
@@ -183,6 +215,7 @@ export default function LoginPage() {
                     checked={rememberMe}
                     onChange={(e) => setRememberMe(e.target.checked)}
                     className="w-4 h-4 rounded border-[#c0c9bf] text-[#004525] focus:ring-[#004525]"
+                    disabled={isLoading}
                   />
                   <span className="text-sm text-[#404942]">Remember me</span>
                 </label>
@@ -196,7 +229,7 @@ export default function LoginPage() {
               >
                 {isLoading ? (
                   <>
-                    <span className="animate-spin">⟳</span>
+                    <FiLoader className="animate-spin" size={20} />
                     Signing In...
                   </>
                 ) : (

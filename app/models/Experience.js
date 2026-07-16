@@ -119,6 +119,15 @@ const experienceSchema = new mongoose.Schema({
   culturalSignificance: String,
   seasonalAvailability: String,
   
+  // Pricing
+  price: {
+    type: Number,
+    required: true,
+    default: 0,
+    min: 0,
+    description: 'Price per person in USD',
+  },
+  
   // Historical/Cultural Tour specific fields
   itinerary: [dayItinerarySchema],
   inclusions: [String],
@@ -134,7 +143,6 @@ const experienceSchema = new mongoose.Schema({
   },
   
   // Tour specific
-  groupSize: String,
   bookingsCount: {
     type: Number,
     default: 0,
@@ -173,6 +181,7 @@ experienceSchema.index({ difficulty: 1 });
 experienceSchema.index({ status: 1 });
 experienceSchema.index({ rating: -1 });
 experienceSchema.index({ 'coordinates.region': 1 });
+experienceSchema.index({ price: 1 }); // Add index for price queries
 
 // Create text index for search
 experienceSchema.index(

@@ -127,12 +127,13 @@ export default function TourDetailPage() {
   const [activeFaq, setActiveFaq] = useState<number | null>(null);
   const [imageErrors, setImageErrors] = useState<Set<number>>(new Set());
   const [mapLoaded, setMapLoaded] = useState(false);
+  const [refReady, setRefReady] = useState(false);
   
   const heroRef = useRef<HTMLDivElement>(null);
   
-  // Fix: Only use useScroll when mounted on client
+  // ✅ FIX: Only use useScroll when ref is ready and component is mounted
   const { scrollYProgress } = useScroll({
-    target: typeof window !== 'undefined' ? heroRef : undefined,
+    target: isMounted && refReady ? heroRef : undefined,
     offset: ["start start", "end start"],
   });
 
@@ -143,6 +144,13 @@ export default function TourDetailPage() {
     setIsMounted(true);
     fetchTour();
   }, [slug]);
+
+  // ✅ Set ref ready after mount
+  useEffect(() => {
+    if (isMounted && heroRef.current) {
+      setRefReady(true);
+    }
+  }, [isMounted]);
 
   useEffect(() => {
     if (isMounted && tour) {
@@ -163,7 +171,6 @@ export default function TourDetailPage() {
       }
 
       if (data.data) {
-        // Ensure price is set (fallback to 0 if not)
         const tourData = {
           ...data.data,
           price: data.data.price || 0,
@@ -265,7 +272,6 @@ export default function TourDetailPage() {
       router.push('/login');
       return;
     }
-    // Navigate to booking page with tour slug
     router.push(`/booking?tour=${tour?.slug}`);
   };
 
@@ -375,6 +381,7 @@ export default function TourDetailPage() {
               priority
               onError={() => handleImageError(currentSlide)}
               unoptimized={true}
+              sizes="100vw"
             />
           </div>
           <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/30 to-transparent"></div>

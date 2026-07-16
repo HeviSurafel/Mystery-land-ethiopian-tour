@@ -16,7 +16,7 @@ interface User {
 interface AuthContextType {
   user: User | null;
   isLoading: boolean;
-  login: (email: string, password: string) => Promise<void>;
+  login: (email: string, password: string) => Promise<{ success: boolean; user?: User; error?: string }>;
   logout: () => Promise<void>;
   register: (name: string, email: string, password: string) => Promise<void>;
   verifyEmail: (email: string, otp: string) => Promise<void>;
@@ -32,41 +32,56 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [isLoading, setIsLoading] = useState(true);
   const router = useRouter();
 
-  useEffect(() => {
-    const fetchUser = async () => {
-      try {
-        const response = await fetch('/api/auth/me');
-        if (response.ok) {
-          const data = await response.json();
-          setUser(data.user);
+ useEffect(() => {
+  const fetchUser = async () => {
+    try {
+      const response = await fetch('/api/auth/me');
+      if (response.ok) {
+        const data = await response.json();
+        // Transform the user data to match the frontend interface
+        if (data.user) {
+          setUser({
+            id: data.user._id || data.user.id, // Handle both _id and id
+            name: data.user.name,
+            email: data.user.email,
+            isVerified: data.user.isVerified,
+            role: data.user.role,
+            phone: data.user.phone,
+          });
         } else {
           setUser(null);
         }
-      } catch (error) {
+      } else {
         setUser(null);
-      } finally {
-        setIsLoading(false);
       }
-    };
-
-    fetchUser();
-  }, []);
-
-  const login = async (email: string, password: string) => {
-    const response = await fetch('/api/auth/login', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email, password }),
-    });
-
-    const data = await response.json();
-
-    if (!response.ok) {
-      throw new Error(data.error || 'Login failed');
+    } catch (error) {
+      setUser(null);
+    } finally {
+      setIsLoading(false);
     }
+  };
 
-    setUser(data.user);
-    router.push('/dashboard');
+  fetchUser();
+}, []);
+  const login = async (email: string, password: string) => {
+    try {
+      const response = await fetch('/api/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        return { success: false, error: data.error || 'Login failed' };
+      }
+
+      setUser(data.user);
+      return { success: true, user: data.user };
+    } catch (error: any) {
+      return { success: false, error: error.message || 'An error occurred during login' };
+    }
   };
 
   const logout = async () => {

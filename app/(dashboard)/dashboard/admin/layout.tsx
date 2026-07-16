@@ -1,16 +1,16 @@
+// app/dashboard/client/layout.tsx
 "use client";
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { motion, AnimatePresence } from "framer-motion";
 import { useAuth } from "@/contexts/AuthContext";
 
 import LoadingSpinner from "@/components/dashboard/LoadingSpinner";
-import { AdminSidebar } from "@/components/dashboard/admin/AdminSidebar";
-import { AdminTopNavbar } from "@/components/dashboard/admin/AdminTopNavbar";
+import { ClientSidebar } from "@/components/dashboard/ClientSidebar";
+import { ClientTopNavbar } from "@/components/dashboard/ClientTopNavbar";
 
 
-export default function AdminDashboardLayout({
+export default function ClientDashboardLayout({
   children,
 }: {
   children: React.ReactNode;
@@ -18,7 +18,7 @@ export default function AdminDashboardLayout({
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [isMobileOpen, setIsMobileOpen] = useState(false);
   const [mounted, setMounted] = useState(false);
-  const { user, loading, hasRole } = useAuth();
+  const { user, isLoading } = useAuth();
   const router = useRouter();
 
   useEffect(() => {
@@ -26,27 +26,32 @@ export default function AdminDashboardLayout({
   }, []);
 
   useEffect(() => {
-    if (!loading && mounted) {
+    if (!isLoading && mounted) {
       if (!user) {
         router.push('/login');
-      } else if (!hasRole(['admin', 'owner'])) {
-        router.push('/');
+      } else if (user.role?.toLowerCase() === 'admin') {
+        // Redirect admin to admin dashboard
+        router.push('/dashboard/admin');
+      } else if (user.role?.toLowerCase() !== 'client') {
+        // Redirect other roles to home
+        router.push('/dashboard/client');
       }
     }
-  }, [user, loading, mounted, router, hasRole]);
+  }, [user, isLoading, mounted, router]);
 
-  if (!mounted || loading) {
+  if (!mounted || isLoading) {
     return <LoadingSpinner />;
   }
 
-  if (!user || !hasRole(['admin', 'owner'])) {
+  // Only render client layout if user is client
+  if (!user || user.role?.toLowerCase() !== 'client') {
     return null;
   }
 
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Sidebar */}
-      <AdminSidebar 
+      <ClientSidebar 
         isCollapsed={isCollapsed}
         setIsCollapsed={setIsCollapsed}
         isMobileOpen={isMobileOpen}
@@ -59,7 +64,7 @@ export default function AdminDashboardLayout({
           isCollapsed ? 'lg:ml-20' : 'lg:ml-64'
         }`}
       >
-        <AdminTopNavbar 
+        <ClientTopNavbar 
           setIsMobileOpen={setIsMobileOpen}
           isCollapsed={isCollapsed}
         />

@@ -1,7 +1,10 @@
 // components/ExperiencesPage.tsx
 'use client';
 
+import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
+import Image from 'next/image';
+import Link from 'next/link';
 import {
   FiMapPin,
   FiStar,
@@ -14,6 +17,8 @@ import {
   FiDollarSign,
   FiAward,
   FiCoffee,
+  FiLoader,
+  FiFilter,
 } from 'react-icons/fi';
 import {
   IoPeopleOutline,
@@ -41,8 +46,45 @@ import {
 } from 'react-icons/fa';
 import { MdOutlineTerrain, MdHistory, MdSelfImprovement } from 'react-icons/md';
 import { RiAncientPavilionLine, RiBuilding4Line } from 'react-icons/ri';
-import Header from './Header';
-import Footer from './Footer';
+
+interface Experience {
+  _id: string;
+  id: string;
+  name: string;
+  slug: string;
+  shortDescription: string;
+  description: string;
+  images: string[];
+  duration: string;
+  location: string;
+  highlights: string[];
+  included: string[];
+  notIncluded: string[];
+  bestTimeToVisit: string;
+  difficulty: string;
+  category: string;
+  tag: string;
+  featured: boolean;
+  rating: number;
+  reviewCount: number;
+  coordinates: {
+    lat: number;
+    lng: number;
+    city: string;
+    region: string;
+  };
+  languages: string[];
+  groupSize: string;
+  ageRange: string;
+  whatToBring: string[];
+  meetingPoint: string;
+  startTimes: string[];
+  culturalSignificance: string;
+  seasonalAvailability: string;
+  price: number;
+  status: string;
+  isUnesco: boolean;
+}
 
 const fadeInUp = {
   initial: { opacity: 0, y: 30 },
@@ -58,214 +100,274 @@ const stagger = {
   },
 };
 
+// Category icons mapping
+const categoryIcons: { [key: string]: any } = {
+  'cultural': IoPeopleOutline,
+  'spiritual': GiChurch,
+  'adventure': GiMountains,
+  'nature': GiLion,
+  'culinary': GiCookingPot,
+  'coffee': GiCoffeeBeans,
+  'festivals': GiDrum,
+  'food': GiCookingPot,
+  'hiking': GiMountains,
+  'birding': IoCameraOutline,
+  'tribal': IoPeopleOutline,
+  'photography': IoCameraOutline,
+  'wellness': GiMeditation,
+  'historical': MdHistory,
+};
+
+// Category colors
+const categoryColors: { [key: string]: string } = {
+  'cultural': '#004525',
+  'spiritual': '#735c00',
+  'adventure': '#cca830',
+  'nature': '#1f5d3a',
+  'culinary': '#c0392b',
+  'coffee': '#6f4e37',
+  'festivals': '#e74c3c',
+  'food': '#e67e22',
+  'hiking': '#27ae60',
+  'birding': '#2980b9',
+  'tribal': '#8e44ad',
+  'photography': '#2c3e50',
+  'wellness': '#1abc9c',
+  'historical': '#d35400',
+};
+
 export default function ExperiencesPage() {
-  const experiences = [
-    {
-      id: 1,
-      title: 'Lalibela Church Ceremony & Spiritual Retreat',
-      category: 'Spiritual & Cultural',
-      location: 'Lalibela, Ethiopia',
-      price: '$1,299',
-      rating: 4.9,
-      duration: '3 Days',
-      maxGroup: 8,
-      image: 'https://images.unsplash.com/photo-1564246558139-90b78d79e5c6?w=800&q=80',
-      tag: 'Sacred Journey',
-      icon: GiChurch,
-      description: 'Participate in ancient Orthodox ceremonies and witness the breathtaking rock-hewn churches at dawn.',
-    },
-    {
-      id: 2,
-      title: 'Omo Valley Tribal Immersion',
-      category: 'Cultural Exchange',
-      location: 'Omo Valley, Ethiopia',
-      price: '$2,499',
-      rating: 4.8,
-      duration: '5 Days',
-      maxGroup: 6,
-      image: 'https://images.unsplash.com/photo-1564246558139-90b78d79e5c6?w=800&q=80',
-      tag: 'Authentic Encounter',
-      icon: IoPeopleOutline,
-      description: 'Live alongside indigenous tribes, learning ancient traditions, body art, and sustainable practices.',
-    },
-    {
-      id: 3,
-      title: 'Simien Mountains Wildlife Trek & Camping',
-      category: 'Adventure & Nature',
-      location: 'Simien Mountains, Ethiopia',
-      price: '$1,899',
-      rating: 4.9,
-      duration: '4 Days',
-      maxGroup: 10,
-      image: 'https://images.unsplash.com/photo-1564246558139-90b78d79e5c6?w=800&q=80',
-      tag: 'Wildlife Adventure',
-      icon: GiMountains,
-      description: 'Trek through dramatic landscapes, spot Gelada baboons, and camp under the stars in Africa\'s roof.',
-    },
-    {
-      id: 4,
-      title: 'Ethiopian Coffee Ceremony & Cuisine Class',
-      category: 'Culinary & Traditions',
-      location: 'Addis Ababa, Ethiopia',
-      price: '$299',
-      rating: 4.7,
-      duration: '1 Day',
-      maxGroup: 12,
-      image: 'https://images.unsplash.com/photo-1564246558139-90b78d79e5c6?w=800&q=80',
-      tag: 'Culinary Journey',
-      icon: GiCoffeeBeans,
-      description: 'Learn the ancient coffee ceremony and master traditional Ethiopian dishes like injera and doro wat.',
-    },
-    {
-      id: 5,
-      title: 'Lake Tana Monastery Boat Tour',
-      category: 'Spiritual & Cultural',
-      location: 'Lake Tana, Ethiopia',
-      price: '$899',
-      rating: 4.8,
-      duration: '2 Days',
-      maxGroup: 8,
-      image: 'https://images.unsplash.com/photo-1564246558139-90b78d79e5c6?w=800&q=80',
-      tag: 'Ancient History',
-      icon: RiAncientPavilionLine,
-      description: 'Explore ancient island monasteries with their priceless religious artifacts and stunning murals.',
-    },
-    {
-      id: 6,
-      title: 'Traditional Ethiopian Music & Dance Night',
-      category: 'Performing Arts',
-      location: 'Addis Ababa, Ethiopia',
-      price: '$149',
-      rating: 4.6,
-      duration: '1 Evening',
-      maxGroup: 20,
-      image: 'https://images.unsplash.com/photo-1564246558139-90b78d79e5c6?w=800&q=80',
-      tag: 'Cultural Celebration',
-      icon: GiDrum,
-      description: 'Experience an unforgettable evening of traditional Ethiopian music, mesmerising dance, and cultural stories.',
-    },
-    {
-      id: 7,
-      title: 'Rift Valley Wildlife Photography Safari',
-      category: 'Wildlife & Photography',
-      location: 'Rift Valley, Ethiopia',
-      price: '$3,299',
-      rating: 4.9,
-      duration: '6 Days',
-      maxGroup: 6,
-      image: 'https://images.unsplash.com/photo-1516426122078-c23e76319801?w=800&q=80',
-      tag: 'Photography Masterclass',
-      icon: IoCameraOutline,
-      description: 'Capture extraordinary wildlife and landscapes with expert guides in Ethiopia\'s stunning Rift Valley.',
-    },
-    {
-      id: 8,
-      title: 'Ancient Ark of the Covenant Pilgrimage',
-      category: 'Religious Heritage',
-      location: 'Axum, Ethiopia',
-      price: '$2,199',
-      rating: 4.9,
-      duration: '4 Days',
-      maxGroup: 6,
-      image: 'https://images.unsplash.com/photo-1564246558139-90b78d79e5c6?w=800&q=80',
-      tag: 'Religious Pilgrimage',
-      icon: RiBuilding4Line,
-      description: 'Follow the ancient footsteps to the legendary Ark of the Covenant in the sacred city of Axum.',
-    },
+  const [experiences, setExperiences] = useState<Experience[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [wishlist, setWishlist] = useState<Set<string>>(new Set());
+  const [selectedCategory, setSelectedCategory] = useState<string>('all');
+  const [searchQuery, setSearchQuery] = useState('');
+
+  // Fetch experiences from API
+  useEffect(() => {
+    fetchExperiences();
+  }, []);
+
+  const fetchExperiences = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      const response = await fetch('/api/experiences?limit=12&featured=true');
+      
+      if (!response.ok) {
+        throw new Error('Failed to fetch experiences');
+      }
+      
+      const data = await response.json();
+      
+      if (data.success) {
+        setExperiences(data.data);
+      } else {
+        throw new Error(data.error || 'Failed to fetch experiences');
+      }
+    } catch (err) {
+      console.error('Error fetching experiences:', err);
+      setError('Failed to load experiences. Please try again later.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const toggleWishlist = (id: string) => {
+    setWishlist(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(id)) {
+        newSet.delete(id);
+      } else {
+        newSet.add(id);
+      }
+      return newSet;
+    });
+  };
+
+  // Get unique categories from experiences
+  const categories = ['all', ...new Set(experiences.map(exp => exp.category).filter(Boolean))];
+
+  // Filter experiences by category and search
+  const filteredExperiences = experiences.filter(exp => {
+    const matchesCategory = selectedCategory === 'all' || exp.category === selectedCategory;
+    const matchesSearch = exp.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                         exp.shortDescription?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                         exp.location?.toLowerCase().includes(searchQuery.toLowerCase());
+    return matchesCategory && matchesSearch;
+  });
+
+  // Featured categories for the quick filter
+  const featuredCategories = [
+    { name: 'Cultural', icon: IoPeopleOutline, color: '#004525', key: 'cultural' },
+    { name: 'Wildlife', icon: GiLion, color: '#735c00', key: 'nature' },
+    { name: 'Culinary', icon: GiCookingPot, color: '#cca830', key: 'culinary' },
+    { name: 'Spiritual', icon: MdSelfImprovement, color: '#1f5d3a', key: 'spiritual' },
   ];
 
-  const featuredCategories = [
-    { name: 'Cultural Immersion', icon: IoPeopleOutline, color: '#004525' },
-    { name: 'Wildlife Safaris', icon: GiLion, color: '#735c00' },
-    { name: 'Culinary Arts', icon: GiCookingPot, color: '#cca830' },
-    { name: 'Spiritual Journeys', icon: MdSelfImprovement, color: '#1f5d3a' },
-  ];
+  // Get icon for experience
+  const getIcon = (category: string) => {
+    return categoryIcons[category] || IoPeopleOutline;
+  };
+
+  // Get color for experience
+  const getColor = (category: string) => {
+    return categoryColors[category] || '#004525';
+  };
+
+  // Format price
+  const formatPrice = (price: number) => {
+    if (!price || price === 0) return 'Contact for Price';
+    return `$${price.toLocaleString()}`;
+  };
+
+  if (loading) {
+    return (
+      <div className="pt-32 pb-20 px-4 md:px-6 max-w-7xl mx-auto">
+        <div className="flex flex-col items-center justify-center py-20">
+          <FiLoader className="w-12 h-12 text-[#004525] animate-spin" />
+          <p className="mt-4 text-[#404942]">Loading experiences...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="pt-32 pb-20 px-4 md:px-6 max-w-7xl mx-auto text-center">
+        <div className="bg-red-50 border border-red-200 rounded-xl p-6 max-w-md mx-auto">
+          <p className="text-red-600">{error}</p>
+          <button
+            onClick={fetchExperiences}
+            className="mt-4 px-6 py-2 bg-[#004525] text-white rounded-lg hover:bg-[#1f5d3a] transition-colors"
+          >
+            Try Again
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
-    <>
-      <Header />
-      <main className="pt-32 pb-20 overflow-x-hidden">
-        {/* Hero Section */}
-        <section className="max-w-7xl mx-auto px-6 mb-12">
+    <main className="pt-32 pb-20 overflow-x-hidden">
+      {/* Hero Section */}
+      <section className="max-w-7xl mx-auto px-6 mb-12">
+        <motion.div
+          initial="initial"
+          animate="animate"
+          variants={stagger}
+          className="text-center"
+        >
           <motion.div
-            initial="initial"
-            animate="animate"
-            variants={stagger}
-            className="text-center"
+            variants={fadeInUp}
+            className="inline-flex items-center gap-3 px-4 py-2 bg-[#97f3b5]/30 text-[#047240] rounded-full mb-4"
           >
-            <motion.div
-              variants={fadeInUp}
-              className="inline-flex items-center gap-3 px-4 py-2 bg-[#97f3b5]/30 text-[#047240] rounded-full mb-4"
-            >
-              <FiAward size={16} />
-              <span className="text-xs font-semibold uppercase tracking-widest">
-                Transform Your Journey
-              </span>
-            </motion.div>
-            <motion.h1
-              variants={fadeInUp}
-              className="font-['Playfair_Display'] text-4xl md:text-6xl text-[#004525] mb-4"
-            >
-              Beyond the <span className="italic text-[#735c00]">Ordinary</span>
-            </motion.h1>
-            <motion.p
-              variants={fadeInUp}
-              className="max-w-2xl mx-auto text-lg text-[#404942]"
-            >
-              Immerse yourself in Ethiopia's rich tapestry of ancient traditions, breathtaking landscapes, and warm hospitality.
-            </motion.p>
+            <FiAward size={16} />
+            <span className="text-xs font-semibold uppercase tracking-widest">
+              Transform Your Journey
+            </span>
           </motion.div>
-        </section>
-
-        {/* Featured Categories */}
-        <section className="max-w-7xl mx-auto px-6 mb-12">
-          <motion.div
-            className="grid grid-cols-2 md:grid-cols-4 gap-4"
-            initial="initial"
-            whileInView="animate"
-            viewport={{ once: true }}
-            variants={stagger}
+          <motion.h1
+            variants={fadeInUp}
+            className="font-['Playfair_Display'] text-4xl md:text-6xl text-[#004525] mb-4"
           >
-            {featuredCategories.map((category, index) => (
-              <motion.div
-                key={index}
-                variants={fadeInUp}
-                className="glass-card rounded-xl p-6 text-center hover-lift cursor-pointer"
-                style={{ borderColor: `${category.color}20` }}
-              >
-                <div
-                  className="w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-3"
-                  style={{ backgroundColor: `${category.color}10` }}
-                >
-                  <category.icon size={28} style={{ color: category.color }} />
-                </div>
-                <h4 className="font-semibold text-sm text-[#004525]">
-                  {category.name}
-                </h4>
-              </motion.div>
-            ))}
-          </motion.div>
-        </section>
+            Beyond the <span className="italic text-[#735c00]">Ordinary</span>
+          </motion.h1>
+          <motion.p
+            variants={fadeInUp}
+            className="max-w-2xl mx-auto text-lg text-[#404942]"
+          >
+            Immerse yourself in Ethiopia's rich tapestry of ancient traditions, breathtaking landscapes, and warm hospitality.
+          </motion.p>
+        </motion.div>
+      </section>
 
-        {/* Experiences Grid */}
-        <section className="max-w-7xl mx-auto px-6">
-          <div className="flex flex-col md:flex-row justify-between items-end gap-4 mb-6">
-            <div>
-              <h2 className="font-['Playfair_Display'] text-3xl font-semibold text-[#004525]">
-                Curated Experiences
-              </h2>
-              <p className="text-[#404942]">Handpicked adventures that connect you to the soul of Ethiopia.</p>
-            </div>
-            <div className="flex gap-3">
-              <button className="w-12 h-12 rounded-full border border-[#707971] flex items-center justify-center text-[#004525] hover:bg-[#004525] hover:text-white transition-all">
-                <FiChevronLeft size={24} />
-              </button>
-              <button className="w-12 h-12 rounded-full border border-[#707971] flex items-center justify-center text-[#004525] hover:bg-[#004525] hover:text-white transition-all">
-                <FiChevronRight size={24} />
-              </button>
-            </div>
+      {/* Search and Filter Bar */}
+      <section className="max-w-7xl mx-auto px-6 mb-8">
+        <div className="flex flex-col md:flex-row gap-4 items-center justify-between">
+          {/* Search Input */}
+          <div className="relative w-full md:w-96">
+            <input
+              type="text"
+              placeholder="Search experiences..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-full px-4 py-3 pl-12 rounded-xl border border-[#c0c9bf]/50 focus:border-[#004525] focus:ring-2 focus:ring-[#004525]/20 transition-all"
+            />
+            <FiCoffee className="absolute left-4 top-1/2 -translate-y-1/2 text-[#707971]" />
           </div>
 
+          {/* Category Filter */}
+          <div className="flex flex-wrap gap-2">
+            {categories.map((category) => (
+              <button
+                key={category}
+                onClick={() => setSelectedCategory(category)}
+                className={`px-4 py-2 rounded-full text-sm font-medium transition-all ${
+                  selectedCategory === category
+                    ? 'bg-[#004525] text-white'
+                    : 'bg-gray-100 text-[#404942] hover:bg-gray-200'
+                }`}
+              >
+                {category === 'all' ? 'All' : category.charAt(0).toUpperCase() + category.slice(1)}
+              </button>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* Featured Categories Quick Filter */}
+      <section className="max-w-7xl mx-auto px-6 mb-12">
+        <motion.div
+          className="grid grid-cols-2 md:grid-cols-4 gap-4"
+          initial="initial"
+          whileInView="animate"
+          viewport={{ once: true }}
+          variants={stagger}
+        >
+          {featuredCategories.map((category, index) => (
+            <motion.button
+              key={index}
+              variants={fadeInUp}
+              onClick={() => setSelectedCategory(category.key)}
+              className={`glass-card rounded-xl p-6 text-center hover-lift cursor-pointer transition-all ${
+                selectedCategory === category.key ? 'ring-2 ring-[#004525] shadow-lg' : ''
+              }`}
+              style={{ borderColor: `${category.color}20` }}
+            >
+              <div
+                className="w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-3"
+                style={{ backgroundColor: `${category.color}10` }}
+              >
+                <category.icon size={28} style={{ color: category.color }} />
+              </div>
+              <h4 className="font-semibold text-sm text-[#004525]">
+                {category.name}
+              </h4>
+            </motion.button>
+          ))}
+        </motion.div>
+      </section>
+
+      {/* Experiences Grid */}
+      <section className="max-w-7xl mx-auto px-6">
+        <div className="flex flex-col md:flex-row justify-between items-end gap-4 mb-6">
+          <div>
+            <h2 className="font-['Playfair_Display'] text-3xl font-semibold text-[#004525]">
+              Curated Experiences
+            </h2>
+            <p className="text-[#404942]">
+              {filteredExperiences.length} {filteredExperiences.length === 1 ? 'experience' : 'experiences'} found
+            </p>
+          </div>
+        </div>
+
+        {filteredExperiences.length === 0 ? (
+          <div className="text-center py-12">
+            <p className="text-[#404942]">No experiences found matching your criteria.</p>
+          </div>
+        ) : (
           <motion.div
             className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"
             initial="initial"
@@ -273,106 +375,145 @@ export default function ExperiencesPage() {
             viewport={{ once: true }}
             variants={stagger}
           >
-            {experiences.map((exp, index) => (
-              <motion.div
-                key={exp.id}
-                variants={fadeInUp}
-                className="group relative overflow-hidden rounded-xl h-[460px] shadow-[0px_10px_30px_rgba(31,93,58,0.08)] transition-all duration-500 hover:-translate-y-2"
-              >
-                <div
-                  className="absolute inset-0 bg-cover bg-center transition-transform duration-700 group-hover:scale-110"
-                  style={{ backgroundImage: `url("${exp.image}")` }}
-                />
-                <div className="absolute inset-0 bg-gradient-to-t from-[#004525]/90 via-[#004525]/20 to-transparent" />
+            {filteredExperiences.map((exp, index) => {
+              const Icon = getIcon(exp.category);
+              const color = getColor(exp.category);
+              const isWishlisted = wishlist.has(exp._id);
+              const imageUrl = exp.images?.[0] || '/Images/placeholder-experience.jpg';
 
-                <div className="absolute top-4 right-4 z-10">
-                  <button className="bg-white/30 backdrop-blur-md p-2 rounded-full text-white hover:bg-white hover:text-[#004525] transition-all">
-                    <FiHeart size={20} />
-                  </button>
-                </div>
-
-                <div className="absolute top-4 left-4 z-10">
-                  <span className="bg-[#ffe088] text-[#241a00] px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider">
-                    {exp.tag}
-                  </span>
-                </div>
-
-                <div className="absolute bottom-0 left-0 right-0 p-4 text-white">
-                  <div className="flex items-center gap-2 mb-2">
-                    <exp.icon size={16} className="text-[#ffe088]" />
-                    <span className="text-xs font-semibold uppercase tracking-wider text-[#ffe088]/80">
-                      {exp.category}
-                    </span>
-                  </div>
-                  <h3 className="font-['Playfair_Display'] text-xl font-semibold mb-1 leading-tight">
-                    {exp.title}
-                  </h3>
-                  <p className="text-sm text-white/80 line-clamp-2 mb-3">
-                    {exp.description}
-                  </p>
-
-                  <div className="flex flex-wrap items-center gap-3 text-xs font-semibold text-white/70">
-                    <div className="flex items-center gap-1">
-                      <FiMapPin size={14} /> {exp.location}
-                    </div>
-                    <div className="flex items-center gap-1">
-                      <FiClock size={14} /> {exp.duration}
-                    </div>
-                    <div className="flex items-center gap-1">
-                      <FiUsers size={14} /> Max {exp.maxGroup}
-                    </div>
+              return (
+                <motion.div
+                  key={exp._id}
+                  variants={fadeInUp}
+                  className="group relative overflow-hidden rounded-xl h-[460px] shadow-[0px_10px_30px_rgba(31,93,58,0.08)] transition-all duration-500 hover:-translate-y-2"
+                >
+                  <div className="relative w-full h-full">
+                    <Image
+                      src={imageUrl}
+                      alt={exp.name}
+                      fill
+                      className="object-cover transition-transform duration-700 group-hover:scale-110"
+                      sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+                    />
+                    <div className="absolute inset-0 bg-gradient-to-t from-[#004525]/90 via-[#004525]/20 to-transparent" />
                   </div>
 
-                  <div className="flex justify-between items-center mt-3 pt-3 border-t border-white/20">
-                    <div className="flex items-center gap-2">
-                      <div className="flex items-center gap-1">
-                        <FaStar size={14} className="text-[#ffe088]" />
-                        <span className="font-bold text-sm">{exp.rating}</span>
-                      </div>
-                      <span className="text-xs text-white/60">•</span>
-                      <span className="font-['Playfair_Display'] text-2xl font-bold">
-                        {exp.price}
-                      </span>
-                    </div>
-                    <button className="bg-white text-[#004525] px-4 py-2 rounded-lg text-xs font-semibold hover:bg-[#ffe088] transition-all">
-                      Book Experience
+                  {/* Wishlist Button */}
+                  <div className="absolute top-4 right-4 z-10">
+                    <button
+                      onClick={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        toggleWishlist(exp._id);
+                      }}
+                      className="bg-white/30 backdrop-blur-md p-2 rounded-full hover:bg-white transition-all"
+                    >
+                      <FiHeart
+                        size={20}
+                        className={`transition-colors ${
+                          isWishlisted ? 'fill-red-500 text-red-500' : 'text-white'
+                        }`}
+                      />
                     </button>
                   </div>
-                </div>
-              </motion.div>
-            ))}
-          </motion.div>
-        </section>
 
-        {/* Newsletter / CTA */}
-        <section className="max-w-7xl mx-auto px-6 mt-16">
-          <motion.div
-            initial={{ opacity: 0, y: 30 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.7 }}
-            viewport={{ once: true }}
-            className="bg-[#004525] p-8 md:p-12 rounded-[48px] relative overflow-hidden"
-          >
-            <div className="absolute top-0 right-0 p-6 opacity-5">
-              <GiCoffeeBeans size={160} className="text-white" />
+                  {/* Tag Badge */}
+                  <div className="absolute top-4 left-4 z-10">
+                    <span className="bg-[#ffe088] text-[#241a00] px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider">
+                      {exp.tag || exp.category}
+                    </span>
+                  </div>
+
+                  {/* UNESCO Badge */}
+                  {exp.isUnesco && (
+                    <div className="absolute top-4 left-20 z-10">
+                      <span className="bg-[#cca830] text-[#4f3e00] px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider flex items-center gap-1">
+                        <FiAward size={12} /> UNESCO
+                      </span>
+                    </div>
+                  )}
+
+                  {/* Content */}
+                  <div className="absolute bottom-0 left-0 right-0 p-4 text-white">
+                    <div className="flex items-center gap-2 mb-2">
+                      <Icon size={16} className="text-[#ffe088]" />
+                      <span className="text-xs font-semibold uppercase tracking-wider text-[#ffe088]/80">
+                        {exp.category}
+                      </span>
+                    </div>
+                    <h3 className="font-['Playfair_Display'] text-xl font-semibold mb-1 leading-tight">
+                      {exp.name}
+                    </h3>
+                    <p className="text-sm text-white/80 line-clamp-2 mb-3">
+                      {exp.shortDescription || exp.description?.substring(0, 120) || ''}
+                    </p>
+
+                    <div className="flex flex-wrap items-center gap-3 text-xs font-semibold text-white/70">
+                      <div className="flex items-center gap-1">
+                        <FiMapPin size={14} /> {exp.location || exp.coordinates?.city || 'Ethiopia'}
+                      </div>
+                      <div className="flex items-center gap-1">
+                        <FiClock size={14} /> {exp.duration}
+                      </div>
+                      <div className="flex items-center gap-1">
+                        <FiUsers size={14} /> {exp.groupSize || '2-8'}
+                      </div>
+                    </div>
+
+                    <div className="flex justify-between items-center mt-3 pt-3 border-t border-white/20">
+                      <div className="flex items-center gap-2">
+                        <div className="flex items-center gap-1">
+                          <FaStar size={14} className="text-[#ffe088]" />
+                          <span className="font-bold text-sm">{exp.rating || 4.8}</span>
+                        </div>
+                        <span className="text-xs text-white/60">•</span>
+                        <span className="font-['Playfair_Display'] text-2xl font-bold">
+                          {formatPrice(exp.price)}
+                        </span>
+                      </div>
+                      <Link href={`/experiences/${exp.slug}`}>
+                        <button className="bg-white text-[#004525] px-4 py-2 rounded-lg text-xs font-semibold hover:bg-[#ffe088] transition-all">
+                          View Details
+                        </button>
+                      </Link>
+                    </div>
+                  </div>
+                </motion.div>
+              );
+            })}
+          </motion.div>
+        )}
+      </section>
+
+      {/* Newsletter / CTA */}
+      <section className="max-w-7xl mx-auto px-6 mt-16">
+        <motion.div
+          initial={{ opacity: 0, y: 30 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.7 }}
+          viewport={{ once: true }}
+          className="bg-[#004525] p-8 md:p-12 rounded-[48px] relative overflow-hidden"
+        >
+          <div className="absolute top-0 right-0 p-6 opacity-5">
+            <GiCoffeeBeans size={160} className="text-white" />
+          </div>
+          <div className="relative z-10 flex flex-col md:flex-row items-center justify-between gap-6">
+            <div className="text-center md:text-left max-w-xl">
+              <h2 className="font-['Playfair_Display'] text-3xl md:text-4xl font-semibold text-white mb-3">
+                Craft Your Own Adventure
+              </h2>
+              <p className="text-white/80 text-lg">
+                Work with our expert concierge to design a bespoke Ethiopian experience tailored to your passions.
+              </p>
             </div>
-            <div className="relative z-10 flex flex-col md:flex-row items-center justify-between gap-6">
-              <div className="text-center md:text-left max-w-xl">
-                <h2 className="font-['Playfair_Display'] text-3xl md:text-4xl font-semibold text-white mb-3">
-                  Craft Your Own Adventure
-                </h2>
-                <p className="text-white/80 text-lg">
-                  Work with our expert concierge to design a bespoke Ethiopian experience tailored to your passions.
-                </p>
-              </div>
+            <Link href="/contact">
               <button className="bg-[#ffe088] text-[#004525] px-8 py-3 rounded-full text-sm font-semibold hover:scale-105 transition-transform whitespace-nowrap">
                 Start Planning
               </button>
-            </div>
-          </motion.div>
-        </section>
-      </main>
-      <Footer />
-    </>
+            </Link>
+          </div>
+        </motion.div>
+      </section>
+    </main>
   );
 }

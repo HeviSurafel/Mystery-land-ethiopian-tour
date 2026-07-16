@@ -53,7 +53,7 @@ const bookingSchema = new mongoose.Schema({
     required: false,
     default: null
   },
-  // Item details snapshot - define as a nested object, not a string
+  // Item details snapshot
   itemSnapshot: {
     name: {
       type: String,
@@ -77,11 +77,34 @@ const bookingSchema = new mongoose.Schema({
     },
     price: {
       type: Number,
-      required: false
+      required: true,
+      default: 0,
+      min: 0
     },
     discount: {
       type: String,
       required: false
+    },
+    // Additional pricing details
+    pricePerPerson: {
+      type: Number,
+      default: 0
+    },
+    currency: {
+      type: String,
+      default: 'USD'
+    },
+    totalPrice: {
+      type: Number,
+      default: 0
+    },
+    deposit: {
+      type: Number,
+      default: 0
+    },
+    depositPercentage: {
+      type: Number,
+      default: 20 // 20% deposit by default
     }
   },
   bookingDate: {
@@ -115,6 +138,47 @@ const bookingSchema = new mongoose.Schema({
       min: 0
     }
   },
+  pricing: {
+    subtotal: {
+      type: Number,
+      required: true,
+      default: 0
+    },
+    tax: {
+      type: Number,
+      default: 0
+    },
+    serviceFee: {
+      type: Number,
+      default: 0
+    },
+    discountAmount: {
+      type: Number,
+      default: 0
+    },
+    discountType: {
+      type: String,
+      enum: ['percentage', 'fixed', 'early_bird', 'group', 'seasonal'],
+      default: null
+    },
+    discountCode: {
+      type: String,
+      default: null
+    },
+    depositAmount: {
+      type: Number,
+      default: 0
+    },
+    totalAmount: {
+      type: Number,
+      required: true,
+      default: 0
+    },
+    currency: {
+      type: String,
+      default: 'USD'
+    }
+  },
   paymentStatus: {
     type: String,
     enum: ['pending', 'partial', 'paid', 'refunded', 'cancelled'],
@@ -143,7 +207,8 @@ const bookingSchema = new mongoose.Schema({
     checkIn: Date,
     checkOut: Date,
     roomType: String,
-    numberOfRooms: Number
+    numberOfRooms: Number,
+    pricePerNight: Number
   }],
   inclusions: [String],
   exclusions: [String],
@@ -189,7 +254,13 @@ const bookingSchema = new mongoose.Schema({
       type: String,
       enum: ['website', 'mobile_app', 'admin_panel', 'api'],
       default: 'website'
-    }
+    },
+    promoCode: String,
+    affiliateId: String
+  },
+  notes: {
+    type: String,
+    maxlength: 1000
   }
 }, {
   timestamps: true
@@ -198,6 +269,25 @@ const bookingSchema = new mongoose.Schema({
 // Update timestamps on save
 bookingSchema.pre('save', function() {
   this.updatedAt = new Date();
+
+});
+
+// Calculate total price before saving
+bookingSchema.pre('save', function() {
+  if (this.pricing) {
+    // Calculate total from subtotal + tax + serviceFee - discount
+    const subtotal = this.pricing.subtotal || 0;
+    const tax = this.pricing.tax || 0;
+    const serviceFee = this.pricing.serviceFee || 0;
+    const discountAmount = this.pricing.discountAmount || 0;
+    
+    this.pricing.totalAmount = subtotal + tax + serviceFee - discountAmount;
+    
+    // Calculate deposit (20% of total by default)
+    const depositPercentage = this.itemSnapshot?.depositPercentage || 20;
+    this.pricing.depositAmount = (this.pricing.totalAmount * depositPercentage) / 100;
+  }
+  
 });
 
 // Indexes
@@ -207,6 +297,14 @@ bookingSchema.index({ itemRef: 1 });
 bookingSchema.index({ itemType: 1 });
 bookingSchema.index({ bookingStatus: 1 });
 bookingSchema.index({ 'travelers.email': 1 });
+bookingSchema.index({ 'pricing.totalAmount': 1 });
+bookingSchema.index({ 'travelDate.start': 1 });
+bookingSchema.index({ 'travelDate.end': 1 });
+
+// Compound indexes for common queries
+bookingSchema.index({ user: 1, bookingStatus: 1 });
+bookingSchema.index({ itemRef: 1, itemType: 1 });
+bookingSchema.index({ bookingDate: -1, bookingStatus: 1 });
 
 const Booking = mongoose.models.Booking || mongoose.model('Booking', bookingSchema);
 

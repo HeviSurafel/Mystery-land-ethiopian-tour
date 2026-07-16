@@ -157,11 +157,11 @@ export default function AdminDashboardPage() {
     try {
       // Fetch all data in parallel for better performance
       const [statsRes, bookingsRes, toursRes, usersRes, systemRes] = await Promise.all([
-        fetch(`http://localhost:3000/api/admin/dashboard/stats?timeRange=${timeRange}`),
-        fetch('http://localhost:3000/api/admin/dashboard/recent-bookings?limit=10'),
-        fetch('http://localhost:3000/api/admin/dashboard/top-tours?limit=5'),
-        fetch('http://localhost:3000/api/admin/dashboard/recent-users?limit=5'),
-        fetch('http://localhost:3000/api/admin/dashboard/system-status')
+        fetch(`/api/admin/dashboard/stats?timeRange=${timeRange}`),
+        fetch('/api/admin/dashboard/recent-bookings?limit=10'),
+        fetch('/api/admin/dashboard/top-tours?limit=5'),
+        fetch('/api/admin/dashboard/recent-users?limit=5'),
+        fetch('/api/admin/dashboard/system-status')
       ]);
 
       // Check if any request failed

@@ -14,10 +14,11 @@ import {
   SlidersHorizontal,
   Loader2,
 } from "lucide-react";
-import { Tour, ToursResponse } from "@/Types";
+
 import { HeroCarousel } from "@/components/HeroCarousel";
 import { TourCard } from "@/components/TourCard";
 import { SkeletonCard } from "@/components/SkeletonCard";
+import { Tour, ToursResponse } from "@/Types";
 
 // Category filters
 const categories = [

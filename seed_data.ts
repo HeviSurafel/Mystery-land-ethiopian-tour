@@ -41,7 +41,8 @@ const ensureExperienceFields = (exp: any) => {
     startTimes: exp.startTimes || ['Flexible'],
     culturalSignificance: exp.culturalSignificance || 'Experience Ethiopian culture',
     seasonalAvailability: exp.seasonalAvailability || 'Year-round',
-    status: exp.status || 'active'
+    status: exp.status || 'active',
+    price: exp.price || 0 // Price from data source, default to 0 if not set
   };
 };
 
@@ -59,7 +60,7 @@ const logCategorySummary = (allTours: any[], allDestinations: any[], allFestival
   console.log(`\n📜 Historical Tours: ${historicalTours.length} found`);
   if (historicalTours.length > 0) {
     historicalTours.slice(0, 5).forEach((tour: any) => 
-      console.log(`   - ${tour.name} (${tour.duration}) [Tag: ${tour.tag || 'none'}]`)
+      console.log(`   - ${tour.name} (${tour.duration}) [Price: $${tour.price || 0}]`)
     );
     if (historicalTours.length > 5) console.log(`   ... and ${historicalTours.length - 5} more`);
   }
@@ -72,7 +73,7 @@ const logCategorySummary = (allTours: any[], allDestinations: any[], allFestival
   console.log(`\n🎭 Cultural Tours: ${culturalTours.length} found`);
   if (culturalTours.length > 0) {
     culturalTours.slice(0, 5).forEach((tour: any) => 
-      console.log(`   - ${tour.name} (${tour.duration}) [Tag: ${tour.tag || 'none'}]`)
+      console.log(`   - ${tour.name} (${tour.duration}) [Price: $${tour.price || 0}]`)
     );
     if (culturalTours.length > 5) console.log(`   ... and ${culturalTours.length - 5} more`);
   }
@@ -86,7 +87,7 @@ const logCategorySummary = (allTours: any[], allDestinations: any[], allFestival
   console.log(`\n🏔️ Nature/Adventure Tours: ${natureTours.length} found`);
   if (natureTours.length > 0) {
     natureTours.slice(0, 5).forEach((tour: any) => 
-      console.log(`   - ${tour.name} (${tour.duration}) [Tag: ${tour.tag || 'none'}]`)
+      console.log(`   - ${tour.name} (${tour.duration}) [Price: $${tour.price || 0}]`)
     );
     if (natureTours.length > 5) console.log(`   ... and ${natureTours.length - 5} more`);
   }
@@ -100,7 +101,7 @@ const logCategorySummary = (allTours: any[], allDestinations: any[], allFestival
   tagValues.forEach((tag: string) => {
     const toursByTag = allTours.filter((tour: any) => tour.tag === tag);
     console.log(`   ${tag}: ${toursByTag.length} tours`);
-    toursByTag.slice(0, 2).forEach((tour: any) => console.log(`      - ${tour.name}`));
+    toursByTag.slice(0, 2).forEach((tour: any) => console.log(`      - ${tour.name} ($${tour.price || 0})`));
     if (toursByTag.length > 2) console.log(`      ... and ${toursByTag.length - 2} more`);
   });
 
@@ -138,7 +139,7 @@ const logCategorySummary = (allTours: any[], allDestinations: any[], allFestival
   const topRatedTours = allTours.filter((tour: any) => tour.rating >= 4.8);
   if (topRatedTours.length > 0) {
     topRatedTours.slice(0, 5).forEach((tour: any) => 
-      console.log(`   - ${tour.name}: ${tour.rating} (${tour.reviewCount} reviews)`)
+      console.log(`   - ${tour.name}: ${tour.rating} (${tour.reviewCount} reviews) [Price: $${tour.price || 0}]`)
     );
     if (topRatedTours.length > 5) console.log(`   ... and ${topRatedTours.length - 5} more`);
   }
@@ -229,9 +230,6 @@ async function seedDatabase() {
     const allExperiences = [...experiencesData, ...popularOmoValleyTours, ...featuredExperiences];
     const uniqueExperiences = removeDuplicates(allExperiences, 'slug');
 
-    // Remove duplicate tours by slug
-    allTours = removeDuplicates(allTours, 'slug');
-
     // Ensure all experiences have required fields
     const validatedExperiences = uniqueExperiences.map(ensureExperienceFields);
 
@@ -259,19 +257,7 @@ async function seedDatabase() {
     console.log(`   ✅ Admin user created: ${adminUser.email}`);
 
     // Create owner user
-    console.log('👤 Creating owner user...');
-    const ownerPassword = await bcrypt.hash('owner123', 10);
-    const ownerUser = await User.create({
-      id: 'owner-001',
-      name: 'Owner User',
-      email: 'owner@omodelta.com',
-      password: ownerPassword,
-      role: 'owner',
-      isVerified: true,
-      createdAt: new Date(),
-      updatedAt: new Date()
-    });
-    console.log(`   ✅ Owner user created: ${ownerUser.email}`);
+    
 
     // Create sample client users
     console.log('👥 Creating client users...');
@@ -311,6 +297,7 @@ async function seedDatabase() {
     try {
       const toursToInsert = allTours.map((tour: any) => ({
         ...tour,
+        price:tour.price, // Use price from data, default to 0 if not set
         status: tour.status || 'active',
         createdAt: new Date(),
         updatedAt: new Date()
@@ -343,7 +330,6 @@ async function seedDatabase() {
     } catch (error: any) {
       if (error.code === 11000) {
         console.warn('   ⚠️ Some duplicate destinations were skipped');
-        // Count how many were inserted
         const count = await Destination.countDocuments();
         console.log(`   ✅ ${count} destinations seeded (duplicates skipped)`);
       } else {
@@ -376,6 +362,7 @@ async function seedDatabase() {
     try {
       const experiencesToInsert = validatedExperiences.map((exp: any) => ({
         ...exp,
+        price: exp.price || 0, // Use price from data, default to 0 if not set
         status: exp.status || 'active',
         createdAt: new Date(),
         updatedAt: new Date()
